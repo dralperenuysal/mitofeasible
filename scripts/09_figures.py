@@ -63,8 +63,10 @@ def fig1_coverage(cov, genes, regions, out):
         ax.axvspan(r.start, r.end, color=C[r.tissue], alpha=.07, lw=0, zorder=0)
     for tis, d in cov.groupby("tissue"):
         d = d.sort_values("pos")
-        ax.fill_between(d.pos, d.q25, d.q75, color=C[tis], alpha=.22, lw=0)
-        ax.plot(d.pos, d.median, color=C[tis], lw=.7, label=LABEL[tis])
+        # d["median"], not d.median: the latter is pandas' method, and the
+        # attribute form silently hands matplotlib a bound method.
+        ax.fill_between(d.pos, d["q25"], d["q75"], color=C[tis], alpha=.22, lw=0)
+        ax.plot(d.pos, d["median"], color=C[tis], lw=.7, label=LABEL[tis])
     ax.set_yscale("log")
     ax.set_ylabel("depth (x)")
     ax.set_title("Figure 1  chrM coverage landscape\n"

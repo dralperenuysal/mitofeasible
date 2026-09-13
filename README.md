@@ -86,9 +86,25 @@ python scripts/mitofeasible.py sample.bam --calls my_calls.tsv   # flags unsuppo
 
 The per-position error rate measured here ships with the tool; it is the half a user cannot derive from their own data. Depth is read from their BAM, because depth does not transfer between datasets at all. `chrM`, `MT` and `NC_012920.1` are all accepted as sequence names; a reference of any length other than 16,569 is refused, since the map's coordinates are defined on rCRS.
 
+## Figures
+
+![chrM coverage landscape](results/figures/fig1_coverage_landscape.png)
+
+**Figure 1.** Median per-base depth across chrM with the interquartile band, by cohort. Grey shading marks the control region, cohort-coloured shading the regions where NUMT masking moves depth by ≥5%. Gene track below, split by strand.
+
+![Feasibility map](results/figures/fig3_feasibility_map.png)
+
+**Figure 3.** The deliverable: the lowest allele fraction detectable at each position, using the measured per-position error rate at power 0.8. Spikes are positions where the error floor, not the depth, is the constraint. The broad rise around 4,300-4,600 in LCL is the largest NUMT-affected region recovered independently.
+
+*Figure 2 (library chemistry contrast) is not produced — the stratum is unpopulated.*
+
+![Replication concordance](results/figures/fig4_replication.png)
+
+**Figure 4.** The map applied to the held-out cohort. Grey: positions where it transfers. Red: the 119 positions where it is optimistic by ≥2x, the failure mode that produces false positives. The dashed line is 2x; the bulk of the distribution sits below parity, meaning the map promises less than the cohort delivers.
+
 ## Results so far
 
-Phases 0-8 are complete. Headline numbers, both cohorts, n=60:
+Phases 0-9 are complete. Headline numbers, both cohorts, n=60:
 
 - **Coverage is not uniform, by a wide margin.** Per-sample coefficient of variation 0.80-0.90 (DNA sequencing gives ~0.10); p99/p01 dynamic range 345-544x. Within one sample, MT-CO1 runs 231x deeper than MT-TK.
 - **NUMT masking matters, and it matters locally.** 2,345-2,782 positions shift by ≥5%, concentrated in 13-24 regions rather than spread out, with a median effect of 22-40% and a worst case of 13x at position 4,530. The direction is one-way: masking only ever adds depth. The two cohorts find almost the same positions (Jaccard 0.82) despite differing in tissue, lab, read length and depth.
