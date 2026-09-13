@@ -1,10 +1,10 @@
-# mtcovmap
+# MitoFeasible
 
 **Where in the mitochondrial genome can variants be called from bulk RNA-seq?**
 
 A position-level feasibility assessment of mitochondrial variant detection in bulk RNA-seq, measured in two independent cohorts.
 
-Released tool component: **MitoFeasible**.
+A study, and the tool it produced.
 
 ---
 
@@ -171,7 +171,7 @@ Applies regardless of publication venue — these exist for the next three years
 
 ## Naming note
 
-The repository is `mtcovmap`; the released tool component is **MitoFeasible**. Both names were checked against GitHub, PyPI and PubMed before adoption. Note that `MTCOV` — an unrelated published tool for community detection in multilayer networks — occupies the shorter `mtcov` name, which is why it is not used here.
+The project was developed internally as `mtcovmap`, which still appears in cluster paths and in `config/params.yaml`. The name was checked against GitHub, PyPI and PubMed before adoption; note that `MTCOV` — an unrelated published tool for community detection in multilayer networks — occupies the shorter `mtcov` name, which is why it was never used.
 
 ## Licence
 
