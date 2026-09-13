@@ -17,5 +17,5 @@
 set -euo pipefail
 cd "${SLURM_SUBMIT_DIR:-$PWD}"
 source "$(conda info --base)/etc/profile.d/conda.sh"
-conda activate mtcovmap
+conda activate mitofeasible
 python scripts/02_download.py --download --row "${SLURM_ARRAY_TASK_ID}"

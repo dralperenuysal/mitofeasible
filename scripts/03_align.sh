@@ -22,8 +22,8 @@ set -euo pipefail
 # cap the sorting threads; both are done here so A, B and the shifted pass share
 # the setting.
 ulimit -n "$(ulimit -Hn)" 2>/dev/null || true
-ROOT=/arf/scratch/suysal/mtcovmap
-REPO=/arf/home/suysal/mtcovmap
+ROOT=${MTCOV_ROOT:-/arf/scratch/suysal/mtcovmap}   # scratch: big intermediates
+REPO=${MTCOV_REPO:-/arf/home/suysal/mtcovmap}       # this checkout, on the cluster
 SIF=$ROOT/mtcovmap.sif
 APPT="apptainer exec --bind /arf $SIF"
 ROW=${SLURM_ARRAY_TASK_ID:?set SLURM_ARRAY_TASK_ID or run under sbatch --array}
@@ -31,11 +31,14 @@ mkdir -p "$ROOT/logs" "$ROOT/bam" "$ROOT/stats"
 
 # One line of the manifest. Reading it here keeps sample identity out of the
 # script and in config/samples.tsv, where Phase 2 put it.
-read -r RUN LAYOUT THREADS MULTIMAP MISMATCH SJMIN SORTRAM EXTRA < <($APPT python - "$ROW" <<'PY'
+# The heredoc is quoted, so the checkout path is passed as an argument rather
+# than interpolated - the script must not depend on the shell expanding inside it.
+read -r RUN LAYOUT THREADS MULTIMAP MISMATCH SJMIN SORTRAM EXTRA < <($APPT python - "$ROW" "$REPO" <<'PY'
 import sys, pandas as pd, yaml
-row = pd.read_csv("/arf/home/suysal/mtcovmap/config/samples.tsv", sep="\t",
+repo = sys.argv[2]
+row = pd.read_csv(f"{repo}/config/samples.tsv", sep="\t",
                   dtype=str).iloc[int(sys.argv[1]) - 1]
-c = yaml.safe_load(open("/arf/home/suysal/mtcovmap/config/params.yaml"))["alignment"]
+c = yaml.safe_load(open(f"{repo}/config/params.yaml"))["alignment"]
 print(row["run_accession"], row["library_layout"], c["threads"],
       c["out_filter_multimap_nmax"], c["out_filter_mismatch_nover_lmax"],
       c["align_sjdb_overhang_min"], c["limit_bam_sort_ram"], c["star_extra"] or "-")

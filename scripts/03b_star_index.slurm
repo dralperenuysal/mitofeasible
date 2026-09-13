@@ -17,8 +17,8 @@
 #SBATCH --error=/arf/scratch/suysal/mtcovmap/logs/idx_%A_%a.err
 
 set -euo pipefail
-ROOT=/arf/scratch/suysal/mtcovmap
-REPO=/arf/home/suysal/mtcovmap
+ROOT=${MTCOV_ROOT:-/arf/scratch/suysal/mtcovmap}   # scratch: big intermediates
+REPO=${MTCOV_REPO:-/arf/home/suysal/mtcovmap}       # this checkout, on the cluster
 APPT="apptainer exec --bind /arf $ROOT/mtcovmap.sif"
 TASK=${SLURM_ARRAY_TASK_ID:-0}
 mkdir -p "$ROOT/logs" "$ROOT/index"

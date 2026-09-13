@@ -1,4 +1,9 @@
-# mtcovmap parameters. Nothing is hardcoded in scripts.
+# MitoFeasible parameters. Nothing is hardcoded in scripts.
+#
+# The absolute paths below are this study's cluster layout. To run the pipeline
+# anywhere else, edit them (they all share one prefix) and set MTCOV_ROOT and
+# MTCOV_REPO for the SLURM scripts. The published tool, scripts/mitofeasible.py,
+# reads none of them and works from a plain clone.
 
 reference:
   accession: NC_012920.1        # rCRS

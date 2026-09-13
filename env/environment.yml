@@ -1,7 +1,7 @@
-# mtcovmap. Pinned to majors only: TRUBA's conda resolves the rest.
+# MitoFeasible. Pinned to majors only: TRUBA's conda resolves the rest.
 # On TRUBA this file is a manifest only - packages are installed into an
 # Apptainer image by scripts/truba_build_container.sh. /arf forbids conda envs.
-name: mtcovmap
+name: mitofeasible
 channels: [conda-forge, bioconda]
 dependencies:
   - python=3.11

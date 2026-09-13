@@ -15,7 +15,7 @@
 #SBATCH --error=/arf/scratch/suysal/mtcovmap/sif_%j.err
 
 set -euo pipefail
-ROOT=/arf/scratch/suysal/mtcovmap
+ROOT=${MTCOV_ROOT:-/arf/scratch/suysal/mtcovmap}   # scratch: big intermediates
 cd "$ROOT"
 rm -f mtcovmap.sif
 apptainer build mtcovmap.sif sandbox

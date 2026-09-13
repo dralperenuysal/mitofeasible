@@ -118,13 +118,15 @@ Phases 0-9 are complete. Headline numbers, both cohorts, n=60:
 
 ```bash
 mamba env create -f env/environment.yml
-mamba activate mtcovmap
+mamba activate mitofeasible
 python scripts/01_bioproject_scan.py --config config/params.yaml
 ```
 
 On a shared HPC filesystem that forbids conda installs, `scripts/truba_build_container.sh` builds an Apptainer image from the same package list; `env/environment.yml` is then a manifest rather than an environment.
 
 All parameters live in `config/params.yaml`. Nothing is hardcoded in scripts. Every non-trivial script carries a `--selftest` that runs without any data.
+
+**Running the pipeline elsewhere.** The tool works from a plain clone. The pipeline does not: `config/params.yaml` and the SLURM scripts carry this study's cluster layout. Edit the paths in that file (they share one prefix) and export `MTCOV_ROOT` (scratch) and `MTCOV_REPO` (the checkout) before submitting; the job scripts read both, defaulting to the paths used here.
 
 ## Layout
 

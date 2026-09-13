@@ -2,7 +2,7 @@
 # Phase 6 - haplogroup profiles, one array task per sample.
 #
 #   cd /arf/scratch/suysal/mtcovmap
-#   sbatch --array=1-60%10 ~/mtcovmap/scripts/06_haplogroup.slurm
+#   sbatch --array=1-60%10 ~/mtcovmap/scripts/07a_allele_counts.slurm
 #
 #SBATCH --job-name=mtcov_alc
 #SBATCH --partition=debug
@@ -13,8 +13,8 @@
 #SBATCH --error=/arf/scratch/suysal/mtcovmap/logs/alc_%A_%a.err
 
 set -euo pipefail
-ROOT=/arf/scratch/suysal/mtcovmap
-REPO=/arf/home/suysal/mtcovmap
+ROOT=${MTCOV_ROOT:-/arf/scratch/suysal/mtcovmap}   # scratch: big intermediates
+REPO=${MTCOV_REPO:-/arf/home/suysal/mtcovmap}       # this checkout, on the cluster
 APPT="apptainer exec --bind /arf $ROOT/mtcovmap.sif"
 ROW=${SLURM_ARRAY_TASK_ID:?run under sbatch --array}
 mkdir -p "$ROOT/logs" "$ROOT/alleles"
