@@ -1,0 +1,245 @@
+# mtcovmap parameters. Nothing is hardcoded in scripts.
+
+reference:
+  accession: NC_012920.1        # rCRS
+  length: 16569
+
+  # The molecule is circular but the reference is linear, and the seam falls
+  # inside the control region. A second rCRS rotated by 8000 bp puts the seam in
+  # MT-CO2/MT-ATP8 instead; control-region depth is read off that pass.
+  # See scripts/03_circularity_decision.md.
+  shift: 8000
+  control_region: [[16024, 16569], [1, 576]]
+
+# Phase 1 — BioProject scan
+bioproject_scan:
+  ena_api: "https://www.ebi.ac.uk/ena/portal/api/search"
+  tax_id: 9606
+  library_strategy: "RNA-Seq"
+  library_source: "TRANSCRIPTOMIC"
+  instrument_platform: "ILLUMINA"
+
+  # ENA library_selection values, mapped to the study's chemistry axis.
+  # Decision 2 (Phase 0 §3.2): primary cohort polyA, replication cohort rRNA-depleted.
+  library_selection:
+    PolyA: polya
+    "Inverse rRNA": rrna_depleted
+    "Inverse rRNA selection": rrna_depleted
+    cDNA: unspecified            # ambiguous; kept and flagged, not silently binned
+
+  # Tissue axis: low -> high mtDNA content (AGENTS.md §1).
+  # Single words only: ENA wildcard matching returns 0 for multi-word patterns
+  # ("skeletal muscle", "brain cortex"), so those are covered by muscle/cortex.
+  # Each search keyword maps to a canonical tissue and an mtDNA-content class.
+  # cortex collapses into brain: otherwise a single brain study looks like a
+  # two-tissue study and scores as though it spanned the design axis.
+  tissues:
+    heart:      {canonical: heart,      mt_content: high}
+    muscle:     {canonical: muscle,     mt_content: high}
+    cortex:     {canonical: brain,      mt_content: intermediate}
+    brain:      {canonical: brain,      mt_content: intermediate}
+    blood:      {canonical: blood,      mt_content: low}
+    fibroblast: {canonical: fibroblast, mt_content: low}
+
+  # A study is a candidate only if it plausibly supports the design.
+  min_runs_per_study: 20
+  min_tissues_per_study: 2
+  min_runs_per_tissue: 8
+  min_read_length: 50            # below this, chrM multi-mapping and NUMT rescue degrade
+  exclude_title_terms:           # healthy-donor constraint (AGENTS.md §1)
+    - tumor
+    - tumour
+    - cancer
+    - carcinoma
+    - patient
+    - disease
+    - infected
+    - treated
+    - knockout
+    - "cell line"
+    - cardiomyopathy
+    - glioma
+    - gbm
+    - covid
+    - parkinson
+    - alzheimer
+    - autism
+    - schizophrenia
+    - epilep
+    - sirna
+    - sgrna
+    - reprogram
+    - "derived"
+    - "heart failure"
+    - rip-seq
+    - "ribosome profiling"
+  # Single-cell/nucleus and enriched protocols are tagged RNA-Seq at ENA but are
+  # not bulk. chrM behaviour differs qualitatively; they are out of scope (README).
+  exclude_protocol_terms:
+    - snrna
+    - scrna
+    - "single cell"
+    - "single-cell"
+    - "single nucleus"
+    - "single-nucleus"
+    - smart-seq
+    - 10x
+    - spatial
+  max_runs_fetched: 200000       # API guard; raise only if the scan truncates
+
+# Phase 2 - retrieval. Cohort pair approved 2026-09-04 (scan report 5.2).
+# Tissue and study are confounded by construction; see report 5.2.
+cohorts:
+  seed: 20260904
+  # TRUBA: intermediates live on scratch, not in the repo tree (AGENTS.md 4).
+  fastq_dir: /arf/scratch/suysal/mtcovmap/fastq
+  panel_url: "https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/integrated_call_samples_v3.20130502.ALL.panel"
+  panel_cache: ref/1000g_panel.txt
+  studies:
+    PRJEB3366:
+      role: primary
+      arm: low_mt
+      tissue: lcl
+      # ENA says "cDNA"; poly(A) per Lappalainen 2013 methods (option D curation).
+      library_type: polyA
+      # Lappalainen 2013 used a non-strand-specific protocol, so the strand split
+      # is recorded for this arm but is not interpretable as heavy vs light.
+      stranded: false
+      n_target: 30
+      # 1000 Genomes donors: sex and population come from the phase 3 panel,
+      # joined on sample_title (the Coriell ID). ENA carries neither.
+      panel_join: true
+      strata: [super_pop, gender]
+    # PRJNA658797 (heart) was rejected on 2026-09-13: its "bulk" RNA-seq is on
+    # purified cardiomyocyte nuclei, which are mtRNA-depleted by construction.
+    # See scan report 6.1. Replaced by whole skeletal muscle biopsies.
+    PRJNA1051137:
+      role: replication
+      arm: high_mt
+      tissue: skeletal_muscle
+      # TruSeq Stranded mRNA per GSE249921 extract protocol - poly(A), stranded.
+      library_type: polyA
+      # TruSeq Stranded mRNA is a dUTP protocol: read 1 is antisense to the
+      # transcript, so transcript strand is read 2's strand.
+      stranded: reverse
+      n_target: 30
+      panel_join: false
+      # Subjects were biopsied at rest, 3 h and 48 h post exercise. Only the
+      # resting biopsy is taken, so the 30 samples are 30 independent donors.
+      meta_tsv: ref/PRJNA1051137_samples.tsv
+      keep_where: {timepoint: rest}
+      strata: [age_class, sex]
+
+# Phase 3 - alignment. Every sample is aligned twice; A and B share these
+# settings exactly, because the reference must be the only difference.
+alignment:
+  aligner: STAR
+  threads: 20                  # barbun's minimum allocation
+  # max(read_length) - 1 across both cohorts: 75 bp (GEUVADIS), 101 bp (muscle).
+  sjdb_overhang: 100
+  # STAR defaults, stated rather than inherited. Multimappers are NOT discarded
+  # here: a read that maps to both chrM and a NUMT is the signal Phase 5 measures,
+  # so the A/B contrast would vanish if alignment dropped it. Whether to filter on
+  # MAPQ is a Phase 4 decision, taken on the data and reported both ways.
+  out_filter_multimap_nmax: 20
+  out_filter_mismatch_nover_lmax: 0.04
+  align_sjdb_overhang_min: 1
+  # STAR sizes its BAM sort buffer from the genome index by default. For the
+  # 16.6 kb shifted chrM that default is a few megabytes, far below what sorting
+  # ~2M chrM reads needs, so it must be set explicitly. Stated here rather than
+  # left implicit, and applied to every pass so the sorts are comparable.
+  # 48 GB: the muscle cohort (55M reads at 101 bp) asks for ~29 GB and the
+  # GEUVADIS cohort ~1 GB, so this is sized for the larger arm with headroom.
+  # Each array task holds a whole node (191-384 GB), and STAR's genome index
+  # takes ~30 GB of that, so the two together stay well inside the node.
+  limit_bam_sort_ram: 48000000000
+  star_extra: ""               # anything added here applies to A and B alike
+  ref_dir: /arf/scratch/suysal/mtcovmap/ref
+  index_dir: /arf/scratch/suysal/mtcovmap/index
+  bam_dir: /arf/scratch/suysal/mtcovmap/bam
+
+# Phase 4 - coverage profiling.
+coverage:
+  cov_dir: /arf/scratch/suysal/mtcovmap/coverage
+  genes_bed: ref/chrM_genes.bed
+  # STAR encodes uniqueness in MAPQ: 255 unique, 3 two loci, 1 three or four,
+  # 0 five or more. Phase 3 deliberately kept multimappers, so the filtering
+  # decision lands here and is reported both ways rather than taken silently.
+  mapq_thresholds: [0, 255]
+  depth_breaks: [10, 50, 100, 500]
+  # Overlap between the primary and shifted passes, used to check the assumption
+  # that the two are comparable rather than to assume it. The window must clear
+  # BOTH seams - the primary reference breaks at 16569/1 and the shifted one at
+  # 8000/8001 - or it measures the seams instead of the agreement. A window over
+  # 8001 showed max_abs_diff 15003; clear of both it is 182 on a mean of 6529.
+  concordance_window: [9000, 16000]
+
+# Phase 5 - NUMT delta. Thresholds are assumptions, so they are stated here
+# rather than buried in the script, and the result is reported at all of them.
+numt_delta:
+  # A position counts as materially affected when masking changes its normalised
+  # depth by at least this fraction. 0.05 is the headline figure; the others are
+  # reported alongside it so the conclusion can be read off any of them.
+  rel_thresholds: [0.02, 0.05, 0.10]
+  # ...and only when it does so in at least this fraction of a cohort's samples.
+  # A shift seen in two of thirty samples is a sample property, not a locus one.
+  min_sample_fraction: 0.5
+  # Runs of affected positions shorter than this are reported but not called
+  # regions: a single position can move on one read's placement.
+  min_region_length: 20
+
+# Phase 6 - haplogroup assignment. A quality control, not a research question:
+# it tests the pipeline against DNA-derived truth and asks whether the positions
+# that drive assignment are covered at all in RNA-seq.
+haplogroup:
+  hsd_dir: /arf/scratch/suysal/mtcovmap/haplogroup
+  # A haplogroup is defined by near-fixed variants, so the call is a majority
+  # call, not a heteroplasmy call. Phase 7 is where low-frequency detection is
+  # modelled; mixing the two here would let an RT artefact rename a lineage.
+  af_threshold: 0.9
+  min_depth: 10
+  min_base_quality: 20
+  # rCRS carries a placeholder N at 3107 that no read can match.
+  skip_positions: [3107]
+  # Same individuals, DNA side: the comparison Phase 6 exists for.
+  truth_vcf_url: "https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/ALL.chrMT.phase3_callmom-v0_4.20130502.genotypes.vcf.gz"
+
+# Phase 7 - feasibility map. The core deliverable.
+feasibility:
+  counts_dir: /arf/scratch/suysal/mtcovmap/alleles
+  # Per-position error rate is estimated, not assumed (Phase 0 3.1). Positions
+  # where the donor's own DNA carries no variant define the floor: whatever the
+  # RNA reads disagree on there is sequencing error plus RT misincorporation at
+  # modified bases plus NUMT-derived reads, which is exactly what a caller faces.
+  epsilon_source_cohort: PRJEB3366
+  # Literature constants, carried alongside the measured rate as a sensitivity
+  # analysis rather than instead of it.
+  epsilon_sensitivity: [0.001, 0.005]
+  # A donor position is only usable for estimating the floor when it is deep
+  # enough for the fraction to mean anything.
+  epsilon_min_depth: 100
+  # Detection is called at this one-sided binomial significance, Bonferroni
+  # corrected across the molecule, with this power. Both are stated because both
+  # move the answer.
+  alpha: 0.01
+  n_tests: 16569
+  power: 0.8
+  # Depth grid the reusable tool interpolates over.
+  depth_grid: [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000]
+
+# Phase 8 - replication. The map is derived from the primary cohort and applied
+# to the replication cohort, which has been held out until now (AGENTS.md 7.3).
+replication:
+  # The muscle donors have no matched DNA, so the error floor cannot be measured
+  # there the way it was in GEUVADIS. The surrogate is the median non-reference
+  # fraction across donors: a real variant is carried by a minority of unrelated
+  # people, so the median at a position is dominated by the error floor. The
+  # surrogate is validated against the DNA-based estimate in the primary cohort
+  # before it is trusted in the replication cohort.
+  surrogate_max_median_frac: 0.10   # above this the position is a fixed difference
+                                    # from rCRS, not noise, and is excluded
+  surrogate_min_depth: 100
+  # A predicted threshold is called optimistic when it is this many times below
+  # what the cohort's own floor supports - the failure mode that produces false
+  # positives rather than missed calls.
+  optimism_factor: 2.0

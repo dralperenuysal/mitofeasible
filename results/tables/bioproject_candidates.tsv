@@ -1,0 +1,10 @@
+study_accession	n_tissues	tissues	mt_content_span	n_runs	n_samples	median_read_length	median_read_count	layouts	chemistries	study_title	role_hint	span_score
+PRJDB1532	2	blood,brain	intermediate,low	342	27	100.0	4000000.0	PAIRED	unspecified	producing reference epigenomes of human gastrointestinal epithelial cells, vascular endothelial cells, and cells of reproductive organs	mixed/unclear	2
+PRJNA940974	2	blood,heart	high,low	60	60	61.0	4448515.5	PAIRED	unspecified	Non-preferential, but detrimental accumulation of macrophages with clonal hematopoiesis-driver mutations in cardiovascular tissues	mixed/unclear	2
+PRJNA34535	2	blood,muscle	high,low	51	6	88.0	14033651.5	PAIRED	unspecified	University of Washington Human Reference Epigenome Mapping Project	mixed/unclear	2
+PRJNA213747	2	brain,muscle	high,intermediate	48	24	100.0	7029426.0	SINGLE	unspecified	Large-scale multi-species survey of metabolome and lipidome	mixed/unclear	2
+PRJNA787705	3	brain,heart,muscle	high,intermediate	48	48	101.0	15077807.0	PAIRED	unspecified	The transcriptomic and proteomic map of human primary cells	mixed/unclear	2
+PRJNA943442	2	brain,heart	high,intermediate	38	20	50.0	25696553.5	PAIRED/SINGLE	polya	m6A landscape in human tissue	primary	2
+PRJNA1093444	2	heart,muscle	high	164	134	75.0	19801214.5	PAIRED	unspecified	Skeletal muscle transcriptional dysregulation of genes involved in senescence is associated with prognosis in severe heart failure	mixed/unclear	1
+PRJNA1282492	2	heart,muscle	high	164	164	50.0	5285010.0	SINGLE	unspecified	GEO accession GSE300872 is currently private and is scheduled to be released on Jun 25, 2026.	mixed/unclear	1
+PRJNA658797	2	heart,muscle	high	42	42	100.0	59964217.0	SINGLE	unspecified	Sex-specific control of human heart maturation by the progesterone receptor [bulk_RNAseq_human]	mixed/unclear	1

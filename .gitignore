@@ -1,0 +1,30 @@
+# Data lives on scratch, not in the repo (AGENTS.md 4).
+data/
+*.fastq.gz
+*.bam
+*.bam.bai
+*.sif
+ref/*.fa
+ref/*.gtf
+ref/*.gz
+ref/1000g_panel.txt
+
+# Regenerable by the scripts; too big to review in a diff.
+results/tables/*.parquet
+results/tables/bioproject_scan_raw.tsv.gz
+results/tables/bioproject_scan_runs.tsv.gz
+
+logs/
+__pycache__/
+.ipynb_checkpoints/
+
+# Symlink to ~/.claude/truba.md - cluster ops notes, broken for anyone cloning.
+truba.md
+
+# Decision records and manuscript: internal, not part of the shared repo.
+manuscript/
+scripts/00_literature_scan.md
+scripts/03_circularity_decision.md
+results/tables/bioproject_scan_report.md
+AGENTS.md
+notebook.md
