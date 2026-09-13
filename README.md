@@ -177,4 +177,4 @@ The project was developed internally as `mtcovmap`, which still appears in clust
 
 ## Licence
 
-MIT (code). Data remain under the terms of their originating repositories.
+MIT (code and the derived tables released here — see `LICENSE`). The underlying sequencing data remain under the terms of their originating repositories.
