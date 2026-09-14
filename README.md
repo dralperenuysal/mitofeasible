@@ -65,7 +65,7 @@ GEUVADIS carries what nothing else on the shortlist does: the same individuals h
 | 7 | `07a_allele_counts.py`, `07_feasibility_map.py` | Measured error rate; position × condition detection limits |
 | — | `mitofeasible.py` | **The released tool** |
 | 8 | `08_replication.py` | Does the map transfer to the held-out cohort? |
-| 9 | `09_figures.py` | Figures and manuscript materials |
+| 9 | `09_figures.py`, `09b_circularity.py` | Figures and manuscript materials |
 
 Phases 0 and 1 halt for human review. Cohort selection is a scientific decision, not an automation step.
 
@@ -92,15 +92,33 @@ The per-position error rate measured here ships with the tool; it is the half a 
 
 **Figure 1.** Median per-base depth across chrM with the interquartile band, by cohort. Grey shading marks the control region, cohort-coloured shading the regions where NUMT masking moves depth by ≥5%. Gene track below, split by strand.
 
+![Measured error rate per position](results/figures/fig2_error_landscape.png)
+
+**Figure 2.** The measured per-position error rate, from 30 donors with matched DNA. It is not the constant the field assumes: it spans three orders of magnitude, 1,410 positions (8.5%) exceed 0.001, and the noisiest positions are recovered blind — 2617 is m<sup>1</sup>A947 in 16S rRNA, 4264/5513/12139 are mt-tRNA modification sites, and 310/16189 are the control-region poly-C tracts. This is why the feasibility map is per-position rather than per-depth.
+
 ![Feasibility map](results/figures/fig3_feasibility_map.png)
 
 **Figure 3.** The deliverable: the lowest allele fraction detectable at each position, using the measured per-position error rate at power 0.8. Spikes are positions where the error floor, not the depth, is the constraint. The broad rise around 4,300-4,600 in LCL is the largest NUMT-affected region recovered independently.
 
-*Figure 2 (library chemistry contrast) is not produced — the stratum is unpopulated.*
-
 ![Replication concordance](results/figures/fig4_replication.png)
 
 **Figure 4.** The map applied to the held-out cohort. Grey: positions where it transfers. Red: the 119 positions where it is optimistic by ≥2x, the failure mode that produces false positives. The dashed line is 2x; the bulk of the distribution sits below parity, meaning the map promises less than the cohort delivers.
+
+### Supporting figures
+
+These document decisions and controls rather than results.
+
+![Circularity](results/figures/fig5_circularity.png)
+
+**Figure 5.** rCRS is linear but the molecule is circular, so the 16569/1 seam — which falls inside the control region — loses reads. A second pass against a reference rotated by 8,000 bp recovers 1.8x the depth over the 10 bp either side of the junction, decaying to 1.3x by 50 bp, and agrees with the primary pass at ρ ≥ 0.9999 in a window clear of both seams.
+
+![NUMT against MAPQ](results/figures/fig6_numt_mapq.png)
+
+**Figure 6.** Keeping only uniquely-mapped reads (MAPQ ≥ 255) is the usual defence against NUMT contamination. It does the opposite here: more positions move, and they move further. Reads shared between chrM and a NUMT are discarded on the unmasked reference but become unique once the NUMT is masked, so the filter widens the gap between the two arms rather than closing it.
+
+![Surrogate error rate](results/figures/fig7_surrogate.png)
+
+**Figure 7.** The replication cohort has no matched DNA, so its error floor is estimated from RNA alone as the median non-reference fraction across donors. Validated against the DNA-based estimate in the primary cohort, where both exist: the surrogate tracks it closely and errs low, making the transferred limits conservative rather than optimistic.
 
 ## Results so far
 
@@ -145,9 +163,11 @@ Intermediates live on scratch. Only chrM BAM subsets and derived tables are kept
 Four figures:
 
 1. Coverage landscape across chrM, samples overlaid by tissue, with gene / NUMT / D-loop tracks
-2. Library chemistry contrast — **unpopulated in this release**; no public healthy-tissue cohort at usable n reports rRNA depletion
+2. Measured per-position error rate, with the RNA-modification hotspots it recovers
 3. **Feasibility map** — position vs. minimum detectable allele frequency
 4. Replication concordance
+
+Plus three supporting figures: circularity (5), NUMT against MAPQ (6), and the DNA-free error-rate surrogate (7). The library chemistry contrast originally planned for figure 2 remains **unpopulated in this release** — no public healthy-tissue cohort at usable n reports rRNA depletion.
 
 Complete when, looking at Figure 3, this can be said with a number attached:
 
