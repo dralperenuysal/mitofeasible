@@ -98,6 +98,9 @@ def main():
     ap.add_argument("--config", default="config/params.yaml")
     ap.add_argument("--samples", default="config/samples.tsv")
     ap.add_argument("--row", type=int)
+    # The chemistry cohort is aligned against the unmasked reference only.
+    ap.add_argument("--arms", default="A,B",
+                    help="comma-separated alignment arms to count")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
     if a.selftest:
@@ -112,7 +115,7 @@ def main():
     row = pd.read_csv(a.samples, sep="\t", dtype=str).iloc[a.row - 1]
     run = row["run_accession"]
     frames = []
-    for arm in ("A", "B"):
+    for arm in a.arms.split(","):
         arr = count_alleles(Path(acfg["bam_dir"]) / f"{run}_{arm}_chrM.bam", ref,
                             hcfg["min_base_quality"])
         frames.append(to_frame(arr, ref, run, arm, hcfg["skip_positions"]))

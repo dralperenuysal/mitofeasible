@@ -2,7 +2,7 @@
 
 **Where in the mitochondrial genome can variants be called from bulk RNA-seq?**
 
-A position-level feasibility assessment of mitochondrial variant detection in bulk RNA-seq, measured in two independent cohorts.
+A position-level feasibility assessment of mitochondrial variant detection in bulk RNA-seq, measured in three independent cohorts.
 
 A study, and the tool it produced.
 
@@ -27,25 +27,27 @@ Scope discipline is deliberate. The value of this project is a validated foundat
 
 ## Cohorts
 
-| | Primary | Replication |
-|---|---|---|
-| Accession | PRJEB3366 (GEUVADIS) | PRJNA1051137 (GSE249921) |
-| Material | Lymphoblastoid cell lines | Skeletal muscle biopsy |
-| mtDNA content | Low (4.1% of reads) | High (12.5%) |
-| Samples | 30 donors | 30 donors, resting biopsy only |
-| Chemistry | poly(A) | poly(A), stranded |
-| Reads | 75 bp PE, ~26M | 101 bp PE, ~55M |
+| | Primary | Replication | Chemistry control |
+|---|---|---|---|
+| Accession | PRJEB3366 (GEUVADIS) | PRJNA1051137 (GSE249921) | PRJNA1086804 |
+| Material | Lymphoblastoid cell lines | Skeletal muscle biopsy | Post-mortem DLPFC, bulk |
+| mtDNA content | Low (4.1% of reads) | High (12.5%) | 13.4% / 0.75% by chemistry |
+| Samples | 30 donors | 30 donors, resting biopsy only | 24, matched by brain region |
+| Chemistry | poly(A) | poly(A), stranded | **12 poly(A) vs 12 rRNA-depleted** |
+| Reads | 75 bp PE, ~26M | 101 bp PE, ~55M | 101 bp PE, ~45M |
+| Role | Error rate, map | Does the map transfer? | Does chemistry move the map? |
 
 GEUVADIS carries what nothing else on the shortlist does: the same individuals have 1000 Genomes whole-genome sequence, so the error rate can be **measured** rather than assumed.
 
-**Stated limitations.** Tissue and study are confounded by construction — no public BioProject spans low to high mitochondrial content in healthy bulk tissue at usable sample size, and controlled-access data is out of scope. Any difference between the arms is tissue effect plus batch effect, inseparable. Both cohorts are poly(A), so the library-chemistry stratum of the map is reported as unpopulated rather than silently dropped. Both are reported, not modelled away.
+**Stated limitations.** Tissue and study are confounded by construction — no public BioProject spans low to high mitochondrial content in healthy bulk tissue at usable sample size, and controlled-access data is out of scope. Any difference between the arms is tissue effect plus batch effect, inseparable. The first two cohorts are both poly(A); the chemistry stratum is therefore carried by a third cohort in which chemistry is the only variable, at the cost of being a different tissue (post-mortem brain) with no matched DNA. Its magnitudes should not be read as transferring to LCL or muscle — what transfers is the direction and the non-uniformity across the molecule. All of this is reported, not modelled away.
 
 ## Design
 
 | Element | Choice | Reason |
 |---|---|---|
-| Donors | Healthy only | Disease confounds technical variation at this stage |
+| Donors | Healthy only for the map | Disease confounds technical variation at this stage; the chemistry control relaxes this, and is reported separately |
 | Cohorts | One primary + one independent replication, separate BioProjects | The map must be shown not to be a single-project artefact |
+| Chemistry | A third cohort carrying both library types within one study | Comparing chemistries across studies would confound them with everything else |
 | Reference | rCRS, NC_012920.1 | Field standard; all coordinates reported against it |
 | Alignment | Run twice, NUMT-masked and unmasked | The difference is a primary result |
 | Circularity | Second chrM rotated by 8,000 bp | The linear reference's seam sits inside the control region |
@@ -66,6 +68,8 @@ GEUVADIS carries what nothing else on the shortlist does: the same individuals h
 | — | `mitofeasible.py` | **The released tool** |
 | 8 | `08_replication.py` | Does the map transfer to the held-out cohort? |
 | 9 | `09_figures.py`, `09b_circularity.py` | Figures and manuscript materials |
+| + | `11_indel_at_homopolymers.py` | Is the poly-C noise length ambiguity reaching a substitution pileup? |
+| + | `12_chemistry.py` | poly(A) vs rRNA depletion: yield, composition, detection limits |
 
 Phases 0 and 1 halt for human review. Cohort selection is a scientific decision, not an automation step.
 
@@ -122,14 +126,15 @@ These document decisions and controls rather than results.
 
 ## Results so far
 
-Phases 0-9 are complete. Headline numbers, both cohorts, n=60:
+Phases 0-9 are complete. Headline numbers: n=60 for the map, plus a 24-sample chemistry control.
 
 - **Coverage is not uniform, by a wide margin.** Per-sample coefficient of variation 0.80-0.90 (DNA sequencing gives ~0.10); p99/p01 dynamic range 345-544x. Within one sample, MT-CO1 runs 231x deeper than MT-TK.
 - **NUMT masking matters, and it matters locally.** 2,345-2,782 positions shift by ≥5%, concentrated in 13-24 regions rather than spread out, with a median effect of 22-40% and a worst case of 13x at position 4,530. The direction is one-way: masking only ever adds depth. The two cohorts find almost the same positions (Jaccard 0.82) despite differing in tissue, lab, read length and depth.
 - **Filtering on MAPQ is not a substitute for masking.** Keeping only uniquely-placed reads *widens* the A/B gap by 26%: a read shared with a NUMT scores MAPQ 3 and is dropped from A, while masking makes the same read unique in B.
-- **The error rate is not a constant.** Measured against matched DNA: median 4.7×10⁻⁴, p99 3.7×10⁻³, maximum 0.62. 1,410 positions exceed the commonly assumed 0.1%. The noisiest positions recover known RNA-modification sites without being told to look — chrM 2617 is residue 947 of 16S rRNA, the m1A site reported by Wengert et al. 2024, alongside mt-tRNA positions and the control-region poly-C tracts.
+- **The error rate is not a constant.** Measured against matched DNA: median 4.7×10⁻⁴, p99 3.7×10⁻³, maximum 0.62. 1,410 positions exceed the commonly assumed 0.1%. The noisiest positions recover known RNA-modification sites without being told to look — chrM 2617 is residue 947 of 16S rRNA, methylated by TRMT61B and long recognised as a source of RNA–DNA differences (Bar-Yaacov et al. 2016; surveyed across tissues by Wengert et al. 2024), alongside mt-tRNA positions and the control-region poly-C tracts.
 - **Detection limits.** Median minimum detectable allele fraction 0.38% (LCL) and 0.21% (muscle); 87% and 93% of positions support detection at 1%. tRNAs are 4-5x worse than protein-coding genes.
 - **The map transfers, and errs safe.** Applied to the held-out cohort: Spearman 0.80, median observed/predicted ratio 0.71. It is optimistic — the failure mode that produces false positives — at 119 positions (0.72%), which are named in the output rather than smoothed over.
+- **Library chemistry moves the limit, and not uniformly.** In a cohort where chemistry is the only variable, rRNA depletion cuts chrM yield 18x (13.4% to 0.75% of alignments, no overlap between groups) and median depth from 12,100x to 670x. Detection limits worsen 2.76x in protein-coding genes and 2.62x in rRNA — but 1.03x, indistinguishable, in tRNAs, whose relative share rises 6.7x. rRNA depletion is not better anywhere; it is merely free at the tRNAs.
 - **Haplogroups match DNA in 30/30 donors**, to the subclade, and are identical between the masked and unmasked alignments in 60/60 samples. NUMT interference does not reach near-fixed variants; it lives entirely in the low-frequency signal.
 
 ## Quick start
@@ -145,6 +150,8 @@ On a shared HPC filesystem that forbids conda installs, `scripts/truba_build_con
 All parameters live in `config/params.yaml`. Nothing is hardcoded in scripts. Every non-trivial script carries a `--selftest` that runs without any data.
 
 **Running the pipeline elsewhere.** The tool works from a plain clone. The pipeline does not: `config/params.yaml` and the SLURM scripts carry this study's cluster layout. Edit the paths in that file (they share one prefix) and export `MTCOV_ROOT` (scratch) and `MTCOV_REPO` (the checkout) before submitting; the job scripts read both, defaulting to the paths used here.
+
+**A second cohort in the same pipeline.** The chemistry control runs through the same scripts with three overrides, so a cohort outside `config/params.yaml` needs no new code: `MTCOV_MANIFEST` (its own sample table), `MTCOV_FQDIR` (flat FASTQ directory rather than one per run) and `MTCOV_ARMS=A` (skip the NUMT-masked arm where the NUMT contrast is not the question). Phases 4 and 7a take matching `--arms` and `--stranded` flags. The third cohort is deliberately *not* added to `cohorts.studies` in `config/params.yaml`: phase 8 picks the replication cohort as "the study that is not the primary one", and a third entry would silently change that.
 
 ## Layout
 
@@ -167,11 +174,15 @@ Four figures:
 3. **Feasibility map** — position vs. minimum detectable allele frequency
 4. Replication concordance
 
-Plus three supporting figures: circularity (5), NUMT against MAPQ (6), and the DNA-free error-rate surrogate (7). The library chemistry contrast originally planned for figure 2 remains **unpopulated in this release** — no public healthy-tissue cohort at usable n reports rRNA depletion.
+Plus three supporting figures: circularity (5), NUMT against MAPQ (6), and the DNA-free error-rate surrogate (7).
+
+The library chemistry contrast originally planned for figure 2 is **now populated**, by a third cohort rather than by the two the map is built from — no public healthy-tissue cohort at usable n reports rRNA depletion, so chemistry is carried by a study that sequences the same brain tissue both ways. It is reported as a table (`results/tables/chemistry_limits_by_gene_type.tsv`) rather than a figure.
 
 Complete when, looking at Figure 3, this can be said with a number attached:
 
 > From this region, at this depth and library type, heteroplasmy is detectable down to X%. From that region, it is not detectable at any threshold.
+
+The "library type" half of that sentence is answered by the chemistry control: rRNA depletion multiplies the limit by 2.8 in protein-coding genes and by 1.0 in tRNAs.
 
 ## Conventions
 

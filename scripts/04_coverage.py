@@ -152,7 +152,7 @@ def library_size(stats_dir, run, arm):
     raise SystemExit(f"no total in {f}")
 
 
-def process(row, cfg, ref, aln, cov, stranded):
+def process(row, cfg, ref, aln, cov, stranded, arms=None):
     length, shift = ref["length"], ref["shift"]
     mask = control_mask(ref["control_region"], length)
     mapqs = cfg["mapq_thresholds"]
@@ -162,7 +162,7 @@ def process(row, cfg, ref, aln, cov, stranded):
     lo, hi = cfg["concordance_window"]
 
     per_base, per_gene, checks = [], [], []
-    for arm in ARMS:
+    for arm in (arms or ARMS):
         prim = bam_depth(bam_dir / f"{run}_{arm}_chrM.bam", length, mapqs, stranded)
         # The shifted reference starts at original position shift+1, so a shifted
         # coordinate is folded by adding the shift and wrapping.
@@ -241,6 +241,16 @@ def main():
     ap.add_argument("--config", default="config/params.yaml")
     ap.add_argument("--samples", default="config/samples.tsv")
     ap.add_argument("--row", type=int, help="1-based row of samples.tsv")
+    # A cohort outside config/params.yaml (the chemistry control) has no entry
+    # under cohorts.studies. Adding one there would change which study phase 8
+    # picks as the replication cohort, so the setting is passed in instead.
+    # The chemistry cohort is aligned against the unmasked reference only: the
+    # NUMT contrast is not what it is there to answer.
+    ap.add_argument("--arms", default=None,
+                    help="comma-separated subset of the alignment arms")
+    ap.add_argument("--stranded", default=None,
+                    choices=["false", "forward", "reverse"],
+                    help="override for a cohort not listed in params.yaml")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
     if a.selftest:
@@ -249,9 +259,14 @@ def main():
         sys.exit("--row is required (or --selftest)")
     c = yaml.safe_load(open(a.config))
     row = pd.read_csv(a.samples, sep="\t", dtype=str).iloc[a.row - 1]
-    stranded = c["cohorts"]["studies"][row["bioproject"]].get("stranded", False)
+    study = c["cohorts"]["studies"].get(row["bioproject"])
+    if study is None and a.stranded is None:
+        sys.exit(f"{row['bioproject']} is not in params.yaml; pass --stranded")
+    stranded = (study.get("stranded", False) if a.stranded is None
+                else (False if a.stranded == "false" else a.stranded))
     process(row, c["coverage"], c["reference"], c["alignment"],
-            c["coverage"]["cov_dir"], stranded)
+            c["coverage"]["cov_dir"], stranded,
+            arms=a.arms.split(",") if a.arms else None)
 
 
 if __name__ == "__main__":

@@ -24,6 +24,11 @@ set -euo pipefail
 ulimit -n "$(ulimit -Hn)" 2>/dev/null || true
 ROOT=${MTCOV_ROOT:-/arf/scratch/suysal/mtcovmap}   # scratch: big intermediates
 REPO=${MTCOV_REPO:-/arf/home/suysal/mtcovmap}       # this checkout, on the cluster
+# A second cohort (the chemistry control) has its own manifest, its own flat
+# FASTQ directory and needs only the unmasked arm. Defaults reproduce the
+# original behaviour exactly, so the main cohort is unaffected.
+MANIFEST=${MTCOV_MANIFEST:-$REPO/config/samples.tsv}
+ARMS=${MTCOV_ARMS:-A B}
 SIF=$ROOT/mtcovmap.sif
 APPT="apptainer exec --bind /arf $SIF"
 ROW=${SLURM_ARRAY_TASK_ID:?set SLURM_ARRAY_TASK_ID or run under sbatch --array}
@@ -33,11 +38,10 @@ mkdir -p "$ROOT/logs" "$ROOT/bam" "$ROOT/stats"
 # script and in config/samples.tsv, where Phase 2 put it.
 # The heredoc is quoted, so the checkout path is passed as an argument rather
 # than interpolated - the script must not depend on the shell expanding inside it.
-read -r RUN LAYOUT THREADS MULTIMAP MISMATCH SJMIN SORTRAM EXTRA < <($APPT python - "$ROW" "$REPO" <<'PY'
+read -r RUN LAYOUT THREADS MULTIMAP MISMATCH SJMIN SORTRAM EXTRA < <($APPT python - "$ROW" "$REPO" "$MANIFEST" <<'PY'
 import sys, pandas as pd, yaml
 repo = sys.argv[2]
-row = pd.read_csv(f"{repo}/config/samples.tsv", sep="\t",
-                  dtype=str).iloc[int(sys.argv[1]) - 1]
+row = pd.read_csv(sys.argv[3], sep="\t", dtype=str).iloc[int(sys.argv[1]) - 1]
 c = yaml.safe_load(open(f"{repo}/config/params.yaml"))["alignment"]
 print(row["run_accession"], row["library_layout"], c["threads"],
       c["out_filter_multimap_nmax"], c["out_filter_mismatch_nover_lmax"],
@@ -59,7 +63,8 @@ if ! mkdir "$LOCK" 2>/dev/null; then
 fi
 trap 'rmdir "$LOCK" 2>/dev/null' EXIT
 
-FQ=$ROOT/fastq/$RUN
+# The main cohort keeps one directory per run; the chemistry cohort is flat.
+FQ=${MTCOV_FQDIR:-$ROOT/fastq/$RUN}
 if [ "$LAYOUT" = "PAIRED" ]; then
     READS="$FQ/${RUN}_1.fastq.gz $FQ/${RUN}_2.fastq.gz"
 else
@@ -78,7 +83,7 @@ star_args=(--runThreadN "$THREADS" --outBAMsortingThreadN "$SORT_THREADS"
 # readFilesCommand is added per call, not here: both passes read .gz, but the
 # shifted pass reads files this script writes, so the coupling stays visible.
 
-for g in A B; do
+for g in $ARMS; do
     mt=$ROOT/bam/${RUN}_${g}_chrM.bam
     spre=$ROOT/bam/${RUN}_${g}_shifted_
     # The genome-wide BAM is deleted at the end of each arm, so resume on the
