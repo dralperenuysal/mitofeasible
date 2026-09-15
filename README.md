@@ -250,7 +250,9 @@ Applies regardless of publication venue — these exist for the next three years
 
 ## Naming note
 
-The project was developed internally as `mtcovmap`, which still appears in cluster paths and in `config/params.yaml`. The name was checked against GitHub, PyPI and PubMed before adoption; note that `MTCOV` — an unrelated published tool for community detection in multilayer networks — occupies the shorter `mtcov` name, which is why it was never used.
+The project was developed as `mtcovmap`, which survives in the cluster paths, the
+`MTCOV_*` environment variables and the container filename. Same project; only
+the published name changed.
 
 ## Licence
 
