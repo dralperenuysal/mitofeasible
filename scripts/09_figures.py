@@ -6,6 +6,7 @@
   3  feasibility map: position vs minimum detectable allele fraction
   4  replication concordance
   5  circularity: what the rotated reference recovers at the seam (09b)
+  8  library chemistry: poly(A) against rRNA depletion (needs 12_chemistry.py)
   6  NUMT delta against MAPQ threshold
   7  the DNA-free error-rate surrogate against the DNA-based one
 
@@ -309,6 +310,83 @@ def fig7_surrogate(m, v, out):
     fig.savefig(out / "fig7_surrogate.pdf")
     plt.close(fig)
 
+# Validated with the palette checker: worst adjacent pair dE 24.7 (protan),
+# 33.6 (normal vision). Both series are also direct-labelled, so identity never
+# rests on colour alone.
+CHEM = {"polya": "#2a78d6", "rrna_depleted": "#eb6834"}
+CHEM_LABEL = {"polya": "poly(A)", "rrna_depleted": "rRNA-depleted"}
+GT_LABEL = {"protein_coding": "protein-coding", "Mt_rRNA": "rRNA", "Mt_tRNA": "tRNA"}
+
+
+def fig8_chemistry(y, t, out):
+    """What rRNA depletion costs: a lot of yield, unevenly distributed."""
+    fig, (ax, ax2) = plt.subplots(1, 2, figsize=(7.2, 3.1),
+                                  gridspec_kw={"width_ratios": [1, 1.25], "wspace": .34})
+
+    # Left: every sample, so the separation is visible rather than asserted.
+    rng = np.random.default_rng(7)
+    for i, chem in enumerate(["polya", "rrna_depleted"]):
+        v = y[y.chemistry == chem].chrM_pct.values
+        ax.scatter(i + rng.uniform(-.13, .13, len(v)), v, s=14, lw=.5,
+                   facecolor=CHEM[chem], edgecolor="white", zorder=3)
+        ax.plot([i - .26, i + .26], [np.median(v)] * 2, color=CHEM[chem], lw=1.6,
+                zorder=4)
+        # Beside the median bar, not above the cloud: at 12 jittered points an
+        # overhead label lands on one of them.
+        ax.text(i + .3, np.median(v), f"{np.median(v):.2f}%", ha="left",
+                va="center", fontsize=7, color=CHEM[chem])
+    ax.set_yscale("log")
+    ax.set_xticks([0, 1], [CHEM_LABEL["polya"], CHEM_LABEL["rrna_depleted"]])
+    ax.set_xlim(-.55, 1.75)
+    ax.set_ylabel("chrM share of alignments (%)")
+    # Within-block ratio, not a ratio of group medians: the design is paired, and
+    # the two differ (18x vs 17x here) because the blocks are not identical.
+    w = y.pivot_table(index="block", columns="chemistry", values="chrM_pct")
+    fold = 1 / (w.rrna_depleted / w.polya).median()
+    ax.set_title(f"Yield: {fold:.0f}x, no overlap", loc="left", fontsize=8, pad=14)
+    ax.annotate("", xy=(.5, y[y.chemistry == "rrna_depleted"].chrM_pct.median()),
+                xytext=(.5, y[y.chemistry == "polya"].chrM_pct.median()),
+                arrowprops=dict(arrowstyle="->", color="#777", lw=.7))
+
+    # Right: where that loss actually lands. A dumbbell, because the quantity of
+    # interest is the movement between the two chemistries, not either level.
+    t = t.set_index("gene_type").loc[["protein_coding", "Mt_rRNA", "Mt_tRNA"]]
+    ypos = np.arange(len(t))[::-1]
+    for yy, (gt, r) in zip(ypos, t.iterrows()):
+        ax2.plot([r.polya * 100, r.rrna_depleted * 100], [yy, yy], color="#bbb",
+                 lw=1.4, zorder=1)
+        ax2.scatter([r.polya * 100], [yy], s=30, facecolor=CHEM["polya"],
+                    edgecolor="white", lw=.6, zorder=3)
+        ax2.scatter([r.rrna_depleted * 100], [yy], s=30,
+                    facecolor=CHEM["rrna_depleted"], edgecolor="white", lw=.6, zorder=3)
+        ax2.text(r.rrna_depleted * 100 * 1.08, yy, f"{r.rrna_over_polya:.2f}x",
+                 va="center", fontsize=7,
+                 color="#333" if r.rrna_over_polya > 1.2 else "#2e7d32")
+    ax2.set_yticks(ypos, [GT_LABEL[g] for g in t.index])
+    ax2.set_ylim(-.6, len(t) - .4)
+    ax2.set_xscale("log")
+    ax2.set_xlim(.3, 4.0)
+    # A log axis this short defaults to a single decade label; name the values.
+    ax2.set_xticks([0.4, 0.6, 1.0, 1.5, 2.5])
+    ax2.get_xaxis().set_major_formatter(matplotlib.ticker.FuncFormatter(
+        lambda v, _: f"{v:g}"))
+    ax2.set_xticks([], minor=True)
+    ax2.set_xlabel("median minimum detectable allele fraction (%)")
+    ax2.set_title(f"Penalty: {t.loc['protein_coding'].rrna_over_polya:.1f}x in "
+                  "genes, none in tRNAs", loc="left", fontsize=8, pad=14)
+    for s_ in ("left",):
+        ax2.spines[s_].set_visible(False)
+    ax2.tick_params(axis="y", length=0)
+    h = [plt.Line2D([], [], marker="o", ls="", color=CHEM[c], label=CHEM_LABEL[c])
+         for c in ("polya", "rrna_depleted")]
+    ax2.legend(handles=h, frameon=False, fontsize=7, loc="upper center",
+               ncol=2, bbox_to_anchor=(.5, 1.02), handletextpad=.3,
+               columnspacing=1.2)
+    fig.savefig(out / "fig8_chemistry.png")
+    fig.savefig(out / "fig8_chemistry.pdf")
+    plt.close(fig)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", default="config/params.yaml")
@@ -342,6 +420,14 @@ def main():
     fig3_feasibility(pd.read_parquet(T / "feasibility_map.parquet"), genes, out)
     fig4_replication(pd.read_parquet(T / "replication_transfer.parquet"), out)
     fig6_numt_mapq(pd.read_parquet(T / "numt_delta_per_position.parquet"), genes, out)
+    # The chemistry cohort is optional: it is a separate study, and the map does
+    # not depend on it.
+    cy, cl = T / "chemistry_yield.tsv", T / "chemistry_limits_by_gene_type.tsv"
+    if cy.exists() and cl.exists():
+        fig8_chemistry(pd.read_csv(cy, sep="\t"), pd.read_csv(cl, sep="\t"), out)
+    else:
+        print("figure 8 skipped: run 12_chemistry.py first")
+
     fig7_surrogate(pd.read_csv(T / "replication_surrogate_vs_dna.tsv", sep="\t"),
                    pd.read_csv(T / "replication_surrogate_validation.tsv",
                                sep="\t").iloc[0], out)

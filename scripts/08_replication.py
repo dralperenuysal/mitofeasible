@@ -144,6 +144,13 @@ def main():
                              sep="\t", index=False)
     merged.to_csv(out / "replication_surrogate_vs_dna.tsv", sep="\t", index=False)
     t.to_parquet(out / "replication_transfer.parquet", index=False)
+    # The optimistic positions are the failure mode the paper asks readers to
+    # act on, so they ship as a plain table rather than only inside a parquet
+    # that the repository does not publish.
+    cols = ["pos", "median_depth", "epsilon", "surrogate", "af_predicted",
+            "af_observed", "ratio"]
+    (t[t.optimistic].sort_values("ratio", ascending=False)[cols]
+     .to_csv(out / "replication_optimistic_positions.tsv", sep="\t", index=False))
     print(f"\ntransfer on {len(t)} positions of the replication cohort:")
     print(f"  spearman(predicted, observed) = {t.af_predicted.corr(t.af_observed, method='spearman'):.4f}")
     print(f"  median ratio observed/predicted = {t.ratio.median():.3f}")

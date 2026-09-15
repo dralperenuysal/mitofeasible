@@ -15,6 +15,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import yaml
+from scipy import stats
 
 HERE = Path(__file__).resolve().parent
 
@@ -86,6 +87,41 @@ def limits(alleles, samples, cfg, alpha, power, estimator="median"):
                                         alpha, power)
         out.append(e.assign(chemistry=chem))
     return pd.concat(out, ignore_index=True)
+
+
+def yield_table(samples, stats_dir, arm="A"):
+    """chrM share of alignments per sample, from the counts phase 3 wrote."""
+    rows = []
+    for r in samples.itertuples():
+        f = Path(stats_dir) / f"{r.run_accession}_{arm}.counts"
+        if not f.exists():
+            continue
+        d = pd.read_csv(f, sep="\t", names=["run", "arm", "what", "n"])
+        n = dict(zip(d.what, d.n))
+        rows.append({"run_accession": r.run_accession, "chemistry": r.chemistry,
+                     "region": r.region, "total": n["total"], "chrM": n["chrM"],
+                     "chrM_pct": n["chrM"] / n["total"] * 100})
+    return pd.DataFrame(rows)
+
+
+def paired_test(d, value, block="block", chem="chemistry"):
+    """Wilcoxon signed-rank over blocks, because the design is paired.
+
+    Each tissue block was sequenced both ways, so the two arms are not
+    independent samples: donor, position and RNA all cancel within a block and
+    only chemistry varies. An unpaired test here would throw that away and
+    charge between-donor variance against the effect.
+    """
+    w = d.pivot_table(index=block, columns=chem, values=value)
+    w = w.dropna()
+    if len(w) < 3 or w.shape[1] != 2:
+        return {"n_blocks": len(w)}
+    a, b = w["polya"], w["rrna_depleted"]
+    return {"n_blocks": len(w), "median_polya": float(a.median()),
+            "median_rrna": float(b.median()),
+            "median_paired_ratio": float((b / a).median()),
+            "n_blocks_rrna_higher": int((b > a).sum()),
+            "wilcoxon_p": float(stats.wilcoxon(a, b).pvalue)}
 
 
 def by_gene_type(lim, genes):
@@ -160,6 +196,21 @@ def main():
     lim = limits(alleles, samples, r, alpha, power, a.estimator)
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
     lim.to_csv(out / f"chemistry_limits_per_position{tag}.tsv", sep="\t", index=False)
+
+    y = yield_table(samples, Path(c["alignment"]["bam_dir"]).parent / "stats")
+    if len(y):
+        # yield_table already carries region; only the donor is new here.
+        y = y.merge(samples[["run_accession", "donor"]], on="run_accession")
+        y["block"] = y.donor + "_" + y.region
+        y.to_csv(out / "chemistry_yield.tsv", sep="\t", index=False)
+        print("\nchrM %% of alignments:")
+        print(y.groupby("chemistry").chrM_pct.agg(["count", "median", "min", "max"])
+               .to_string(float_format="%.3f"))
+        t = paired_test(y, "chrM_pct")
+        print("paired over tissue blocks:", {k: (round(v, 6) if isinstance(v, float) else v)
+                                             for k, v in t.items()})
+        pd.DataFrame([t]).to_csv(out / "chemistry_yield_paired_test.tsv",
+                                 sep="\t", index=False)
 
     genes = pd.read_csv(c["coverage"]["genes_bed"], sep="\t")
     t, per_gene = by_gene_type(lim, genes)

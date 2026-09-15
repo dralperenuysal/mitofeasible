@@ -30,10 +30,10 @@ Scope discipline is deliberate. The value of this project is a validated foundat
 | | Primary | Replication | Chemistry control |
 |---|---|---|---|
 | Accession | PRJEB3366 (GEUVADIS) | PRJNA1051137 (GSE249921) | PRJNA1086804 |
-| Material | Lymphoblastoid cell lines | Skeletal muscle biopsy | Post-mortem DLPFC, bulk |
-| mtDNA content | Low (4.1% of reads) | High (12.5%) | 13.4% / 0.75% by chemistry |
-| Samples | 30 donors | 30 donors, resting biopsy only | 24, matched by brain region |
-| Chemistry | poly(A) | poly(A), stranded | **12 poly(A) vs 12 rRNA-depleted** |
+| Material | Lymphoblastoid cell lines | Skeletal muscle biopsy | Post-mortem DLPFC, bulk, neurotypical controls |
+| mtDNA content | Low (4.1% of reads) | High (12.5%) | 13.1% / 0.77% by chemistry |
+| Samples | 30 donors | 30 donors, resting biopsy only | 38 = 19 blocks x 2 chemistries, 10 donors |
+| Chemistry | poly(A) | poly(A), stranded | **paired: every block poly(A) *and* rRNA-depleted** |
 | Reads | 75 bp PE, ~26M | 101 bp PE, ~55M | 101 bp PE, ~45M |
 | Role | Error rate, map | Does the map transfer? | Does chemistry move the map? |
 
@@ -120,6 +120,10 @@ These document decisions and controls rather than results.
 
 **Figure 6.** Keeping only uniquely-mapped reads (MAPQ ≥ 255) is the usual defence against NUMT contamination. It does the opposite here: more positions move, and they move further. Reads shared between chrM and a NUMT are discarded on the unmasked reference but become unique once the NUMT is masked, so the filter widens the gap between the two arms rather than closing it.
 
+![Library chemistry](results/figures/fig8_chemistry.png)
+
+**Figure 8.** What rRNA depletion costs, and where. Left: chrM share of alignments per sample; the two groups do not overlap. Right: median minimum detectable allele fraction by gene class, each pair joined, with the ratio between chemistries. The penalty is 2.7-3.0x in rRNA and protein-coding genes and absent in tRNAs, where the two chemistries coincide.
+
 ![Surrogate error rate](results/figures/fig7_surrogate.png)
 
 **Figure 7.** The replication cohort has no matched DNA, so its error floor is estimated from RNA alone as the median non-reference fraction across donors. Validated against the DNA-based estimate in the primary cohort, where both exist: the surrogate tracks it closely and errs low, making the transferred limits conservative rather than optimistic.
@@ -133,8 +137,8 @@ Phases 0-9 are complete. Headline numbers: n=60 for the map, plus a 24-sample ch
 - **Filtering on MAPQ is not a substitute for masking.** Keeping only uniquely-placed reads *widens* the A/B gap by 26%: a read shared with a NUMT scores MAPQ 3 and is dropped from A, while masking makes the same read unique in B.
 - **The error rate is not a constant.** Measured against matched DNA: median 4.7×10⁻⁴, p99 3.7×10⁻³, maximum 0.62. 1,410 positions exceed the commonly assumed 0.1%. The noisiest positions recover known RNA-modification sites without being told to look — chrM 2617 is residue 947 of 16S rRNA, methylated by TRMT61B and long recognised as a source of RNA–DNA differences (Bar-Yaacov et al. 2016; surveyed across tissues by Wengert et al. 2024), alongside mt-tRNA positions and the control-region poly-C tracts.
 - **Detection limits.** Median minimum detectable allele fraction 0.38% (LCL) and 0.21% (muscle); 87% and 93% of positions support detection at 1%. tRNAs are 4-5x worse than protein-coding genes.
-- **The map transfers, and errs safe.** Applied to the held-out cohort: Spearman 0.80, median observed/predicted ratio 0.71. It is optimistic — the failure mode that produces false positives — at 119 positions (0.72%), which are named in the output rather than smoothed over.
-- **Library chemistry moves the limit, and not uniformly.** In a cohort where chemistry is the only variable, rRNA depletion cuts chrM yield 18x (13.4% to 0.75% of alignments, no overlap between groups) and median depth from 12,100x to 670x. Detection limits worsen 2.76x in protein-coding genes and 2.62x in rRNA — but 1.03x, indistinguishable, in tRNAs, whose relative share rises 6.7x. rRNA depletion is not better anywhere; it is merely free at the tRNAs.
+- **The map transfers, and errs safe.** Applied to the held-out cohort: Spearman 0.80, median observed/predicted ratio 0.71. It is optimistic — the failure mode that produces false positives — at 119 positions (0.72%), listed in `results/tables/replication_optimistic_positions.tsv` rather than smoothed over.
+- **Library chemistry moves the limit, and not uniformly.** 19 tissue blocks, each sequenced both ways, so donor and tissue cancel within a block. rRNA depletion cuts chrM yield 18x (median within-block ratio) (13.1% to 0.77% of alignments, lower in 19/19 blocks) and median depth from 12,000x to 630x. Detection limits worsen 3.00x in protein-coding genes and 2.72x in rRNA — but 0.97x, indistinguishable, in tRNAs, whose relative share rises 5.5x. rRNA depletion is not better anywhere; it is merely free at the tRNAs.
 - **Haplogroups match DNA in 30/30 donors**, to the subclade, and are identical between the masked and unmasked alignments in 60/60 samples. NUMT interference does not reach near-fixed variants; it lives entirely in the low-frequency signal.
 
 ## Quick start
@@ -147,7 +151,7 @@ python scripts/01_bioproject_scan.py --config config/params.yaml
 
 On a shared HPC filesystem that forbids conda installs, `scripts/truba_build_container.sh` builds an Apptainer image from the same package list; `env/environment.yml` is then a manifest rather than an environment.
 
-All parameters live in `config/params.yaml`. Nothing is hardcoded in scripts. Every non-trivial script carries a `--selftest` that runs without any data.
+All parameters live in `config/params.yaml`. Nothing is hardcoded in scripts. Every non-trivial script carries a selftest that runs without any data — `--selftest`, except `06_haplogroup.py`, where it is a positional mode (`python scripts/06_haplogroup.py selftest`).
 
 **Running the pipeline elsewhere.** The tool works from a plain clone. The pipeline does not: `config/params.yaml` and the SLURM scripts carry this study's cluster layout. Edit the paths in that file (they share one prefix) and export `MTCOV_ROOT` (scratch) and `MTCOV_REPO` (the checkout) before submitting; the job scripts read both, defaulting to the paths used here.
 
@@ -174,9 +178,9 @@ Four figures:
 3. **Feasibility map** — position vs. minimum detectable allele frequency
 4. Replication concordance
 
-Plus three supporting figures: circularity (5), NUMT against MAPQ (6), and the DNA-free error-rate surrogate (7).
+Plus four supporting figures: circularity (5), NUMT against MAPQ (6), the DNA-free error-rate surrogate (7), and the library-chemistry contrast (8).
 
-The library chemistry contrast originally planned for figure 2 is **now populated**, by a third cohort rather than by the two the map is built from — no public healthy-tissue cohort at usable n reports rRNA depletion, so chemistry is carried by a study that sequences the same brain tissue both ways. It is reported as a table (`results/tables/chemistry_limits_by_gene_type.tsv`) rather than a figure.
+The library chemistry contrast originally planned for figure 2 is **now populated**, by a third cohort rather than by the two the map is built from — no public healthy-tissue cohort at usable n reports rRNA depletion, so chemistry is carried by a study that sequences the same brain tissue both ways. It is figure 8, backed by `results/tables/chemistry_limits_by_gene_type.tsv`.
 
 Complete when, looking at Figure 3, this can be said with a number attached:
 
