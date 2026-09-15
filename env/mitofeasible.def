@@ -1,0 +1,46 @@
+# Apptainer definition for the analysis environment.
+#
+# scripts/truba_build_container.sh builds the same environment on TRUBA, but it
+# starts from /arf/sw/containers/miniconda3/miniconda3-container.sif — a path
+# that exists only on that cluster, so nobody else can run it. This file starts
+# from a public image instead and is the one to use anywhere else.
+#
+#   apptainer build mitofeasible.sif env/mitofeasible.def
+#   apptainer exec --bind /path/to/data mitofeasible.sif python3 scripts/...
+#
+# Versions come from env/versions.lock, the set the published results were
+# produced with. Drop the --file line to take current releases instead; expect
+# the numbers to move if STAR or samtools do.
+
+Bootstrap: docker
+From: mambaorg/micromamba:1.5.8
+
+%files
+    env/versions.lock /opt/versions.lock
+
+%post
+    set -eux
+    micromamba install -y -p /opt/mitofeasible -c conda-forge -c bioconda \
+        --file /opt/versions.lock
+    micromamba clean -ya
+    # The lock carries transitive packages too, so a failure here is a genuine
+    # conflict rather than a missing dependency.
+    /opt/mitofeasible/bin/python -c "import pandas, numpy, scipy, pysam, yaml, matplotlib"
+    /opt/mitofeasible/bin/STAR --version
+    /opt/mitofeasible/bin/samtools --version | head -1
+
+%environment
+    export PATH=/opt/mitofeasible/bin:$PATH
+
+%runscript
+    exec /opt/mitofeasible/bin/python "$@"
+
+%test
+    # Runs at build time: the pipeline's own selftests need no data, so a built
+    # image can be checked before it is trusted with a run.
+    /opt/mitofeasible/bin/python -c "import scipy.stats as s; print(s.binom.isf(0.01, 1000, 1e-3))"
+
+%labels
+    Name mitofeasible
+    Description Position-level feasibility of mtDNA variant calling from bulk RNA-seq
+    Repository https://github.com/dralperenuysal/mitofeasible

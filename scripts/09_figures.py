@@ -10,8 +10,8 @@
   6  NUMT delta against MAPQ threshold
   7  the DNA-free error-rate surrogate against the DNA-based one
 
-The library-chemistry contrast originally planned for figure 2 is still not
-produced: both cohorts are poly(A), so the comparison would be confounded.
+The library-chemistry contrast originally planned for figure 2 is figure 8,
+carried by a third cohort in which chemistry is the only variable.
 
 Everything is drawn from the tables the earlier phases wrote; nothing is
 recomputed here, so a figure can never disagree with the table behind it.
@@ -104,10 +104,15 @@ def fig2_error_landscape(eps, genes, out):
     e = eps.sort_values("pos")
     y = e.epsilon.clip(lower=FLOOR)
     shade_dloop(ax)
+    # Placed in the widest gap between hotspot annotations (5,513 to 12,139), not
+    # at the left edge: there they sat under the 310 label and, at print size,
+    # ran into it. The opaque box keeps the scatter from showing through.
     for t, lab, col in [(1e-3, "0.001  (the usual assumption)", "#e34948"),
                         (1e-2, "0.01", "#888")]:
         ax.axhline(t, color=col, lw=.6, ls="--", zorder=1)
-        ax.text(60, t * 1.15, lab, fontsize=6, color=col, va="bottom")
+        ax.text(8600, t * 1.25, lab, fontsize=6, color=col, va="bottom",
+                ha="center", zorder=4,
+                bbox=dict(facecolor="white", edgecolor="none", pad=1.2))
     ax.scatter(e.pos, y, s=1.1, c="#6f7f72", lw=0, alpha=.55, zorder=2)
     hot = e[e.epsilon >= .05]
     ax.scatter(hot.pos, hot.epsilon, s=9, c="#e34948", lw=0, zorder=3)
@@ -434,9 +439,9 @@ def main():
 
     # Figure 5 needs the unspliced primary depth, which phase 4 does not keep;
     # 09b_circularity.py rebuilds it from the BAMs and draws its own figure.
-    print(f"wrote figures 1, 2, 3, 4, 6 and 7 to {out}")
-    print("figure 5 comes from 09b_circularity.py; the library-chemistry contrast "
-          "is still not produced (both cohorts are poly(A)); see README.")
+    print(f"wrote figures to {out}: " + ", ".join(
+        sorted(f.stem for f in out.glob("fig*.pdf"))))
+    print("figure 5 comes from 09b_circularity.py.")
 
 
 if __name__ == "__main__":

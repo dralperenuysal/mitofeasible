@@ -144,12 +144,29 @@ Phases 0-9 are complete. Headline numbers: n=60 for the map, plus a 24-sample ch
 ## Quick start
 
 ```bash
-mamba env create -f env/environment.yml
-mamba activate mitofeasible
-python scripts/01_bioproject_scan.py --config config/params.yaml
+./run_all.sh                 # the phase order, with the exact invocations
+./run_all.sh selftest        # verify the logic without downloading anything
+DRY=1 ./run_all.sh all       # print every command without running it
 ```
 
-On a shared HPC filesystem that forbids conda installs, `scripts/truba_build_container.sh` builds an Apptainer image from the same package list; `env/environment.yml` is then a manifest rather than an environment.
+`run_all.sh` is the entry point: the README table says what each phase does, that
+script says how it was called. Several invocations are not guessable from the
+scripts alone — the chemistry cohort needs three environment overrides and two
+flags.
+
+The environment:
+
+```bash
+apptainer build mitofeasible.sif env/mitofeasible.def   # anywhere
+bash scripts/truba_build_container.sh                   # on TRUBA only
+```
+
+`env/environment.yml` pins majors and is the file to edit when adding a
+dependency. `env/versions.lock` is the exact package set the published results
+came from (STAR 2.7.11b, samtools 1.24, scipy 1.17.1, …) and is what
+`env/mitofeasible.def` installs; move those and the numbers move with them.
+
+On a shared HPC filesystem that forbids conda installs (TRUBA does), the container is the only sanctioned route; `env/environment.yml` is then a manifest rather than an environment. `truba_build_container.sh` starts from a base image that exists only on that cluster, so use `env/mitofeasible.def` anywhere else — it builds the same environment from a public base.
 
 All parameters live in `config/params.yaml`. Nothing is hardcoded in scripts. Every non-trivial script carries a selftest that runs without any data — `--selftest`, except `06_haplogroup.py`, where it is a positional mode (`python scripts/06_haplogroup.py selftest`).
 
