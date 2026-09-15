@@ -404,38 +404,65 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     genes = pd.read_csv(c["coverage"]["genes_bed"], sep="\t")
 
-    # Coverage quantiles across each cohort, from the per-sample parquets.
-    samples = pd.read_csv("config/samples.tsv", sep="\t")[["run_accession", "tissue"]]
-    rows = []
-    for f in sorted(Path(c["coverage"]["cov_dir"]).glob("*_per_base.parquet")):
-        d = pd.read_parquet(f)
-        rows.append(d[(d.arm == "A") & (d.mapq_min == 0) & (d.strand == "both")]
-                    [["run_accession", "pos", "depth"]])
-    cov = (pd.concat(rows).merge(samples, on="run_accession")
-           .groupby(["tissue", "pos"]).depth
-           .agg(median="median", q25=lambda s: s.quantile(.25),
-                q75=lambda s: s.quantile(.75)).reset_index())
+    # Some inputs are large intermediates the repository does not publish. A
+    # clone therefore redraws the figures whose tables are committed and says
+    # which it could not, rather than dying on the first missing parquet.
+    def draw(name, fn, *inputs):
+        missing = [str(i) for i in inputs if isinstance(i, Path) and not i.exists()]
+        if missing:
+            print(f"{name} skipped, missing: {', '.join(missing)}")
+            return
+        try:
+            fn()
+        except FileNotFoundError as e:
+            print(f"{name} skipped, missing: {e.filename}")
 
-    regions = pd.read_csv(T / "numt_delta_regions.tsv", sep="\t")
-    regions = regions[(regions.rel_threshold == 0.05) & (regions.strand == "both")
-                      & (regions.mapq_min == 0)]
-    fig1_coverage(cov, genes, regions, out)
-    fig2_error_landscape(pd.read_csv(T / "error_rate_per_position.tsv", sep="\t"),
-                         genes, out)
-    fig3_feasibility(pd.read_parquet(T / "feasibility_map.parquet"), genes, out)
-    fig4_replication(pd.read_parquet(T / "replication_transfer.parquet"), out)
-    fig6_numt_mapq(pd.read_parquet(T / "numt_delta_per_position.parquet"), genes, out)
-    # The chemistry cohort is optional: it is a separate study, and the map does
-    # not depend on it.
-    cy, cl = T / "chemistry_yield.tsv", T / "chemistry_limits_by_gene_type.tsv"
-    if cy.exists() and cl.exists():
-        fig8_chemistry(pd.read_csv(cy, sep="\t"), pd.read_csv(cl, sep="\t"), out)
-    else:
-        print("figure 8 skipped: run 12_chemistry.py first")
+    def coverage_quantiles():
+        samples = pd.read_csv(c["cohorts"]["samples_tsv"], sep="\t") \
+            if "samples_tsv" in c["cohorts"] else pd.read_csv("config/samples.tsv", sep="\t")
+        samples = samples[["run_accession", "tissue"]]
+        files = sorted(Path(c["coverage"]["cov_dir"]).glob("*_per_base.parquet"))
+        if not files:
+            raise FileNotFoundError(2, "no per-base parquets", c["coverage"]["cov_dir"])
+        rows = [pd.read_parquet(f)[lambda d: (d.arm == "A") & (d.mapq_min == 0)
+                                  & (d.strand == "both")]
+                [["run_accession", "pos", "depth"]] for f in files]
+        return (pd.concat(rows).merge(samples, on="run_accession")
+                .groupby(["tissue", "pos"]).depth
+                .agg(median="median", q25=lambda s: s.quantile(.25),
+                     q75=lambda s: s.quantile(.75)).reset_index())
 
-    fig7_surrogate(pd.read_csv(T / "replication_surrogate_vs_dna.tsv", sep="\t"),
-                   pd.read_csv(T / "replication_surrogate_validation.tsv",
-                               sep="\t").iloc[0], out)
+    regions_f = T / "numt_delta_regions.tsv"
+    draw("figure 1", lambda: fig1_coverage(
+        coverage_quantiles(),
+        genes,
+        pd.read_csv(regions_f, sep="\t").pipe(
+            lambda r: r[(r.rel_threshold == 0.05) & (r.strand == "both")
+                        & (r.mapq_min == 0)]),
+        out), regions_f)
+    draw("figure 2", lambda: fig2_error_landscape(
+        pd.read_csv(T / "error_rate_per_position.tsv", sep="\t"), genes, out),
+        T / "error_rate_per_position.tsv")
+    draw("figure 3", lambda: fig3_feasibility(
+        pd.read_parquet(T / "feasibility_map.parquet"), genes, out),
+        T / "feasibility_map.parquet")
+    draw("figure 4", lambda: fig4_replication(
+        pd.read_parquet(T / "replication_transfer.parquet"), out),
+        T / "replication_transfer.parquet")
+    draw("figure 6", lambda: fig6_numt_mapq(
+        pd.read_parquet(T / "numt_delta_per_position.parquet"), genes, out),
+        T / "numt_delta_per_position.parquet")
+    draw("figure 8", lambda: fig8_chemistry(
+        pd.read_csv(T / "chemistry_yield.tsv", sep="\t"),
+        pd.read_csv(T / "chemistry_limits_by_gene_type.tsv", sep="\t"), out),
+        T / "chemistry_yield.tsv", T / "chemistry_limits_by_gene_type.tsv")
+
+    draw("figure 7", lambda: fig7_surrogate(
+        pd.read_csv(T / "replication_surrogate_vs_dna.tsv", sep="\t"),
+        pd.read_csv(T / "replication_surrogate_validation.tsv", sep="\t").iloc[0],
+        out),
+        T / "replication_surrogate_vs_dna.tsv",
+        T / "replication_surrogate_validation.tsv")
 
     # Figure 5 needs the unspliced primary depth, which phase 4 does not keep;
     # 09b_circularity.py rebuilds it from the BAMs and draws its own figure.
