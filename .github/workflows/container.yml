@@ -8,7 +8,7 @@
 #
 # Pull it with Apptainer, which is what the pipeline uses:
 #
-#   apptainer pull oras://ghcr.io/dralperenuysal/mitofeasible:1.0.0
+#   apptainer pull oras://ghcr.io/dralperenuysal/mitofeasible:1.0.1
 #
 # This is a SIF published as an ORAS artifact, not a runnable OCI image, so
 # `docker pull` will not work on it. That is deliberate: one recipe
