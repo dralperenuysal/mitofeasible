@@ -407,15 +407,20 @@ def main():
     # Some inputs are large intermediates the repository does not publish. A
     # clone therefore redraws the figures whose tables are committed and says
     # which it could not, rather than dying on the first missing parquet.
+    drawn, skipped = [], []
+
     def draw(name, fn, *inputs):
         missing = [str(i) for i in inputs if isinstance(i, Path) and not i.exists()]
         if missing:
             print(f"{name} skipped, missing: {', '.join(missing)}")
+            skipped.append(name)
             return
         try:
             fn()
+            drawn.append(name)
         except FileNotFoundError as e:
             print(f"{name} skipped, missing: {e.filename}")
+            skipped.append(name)
 
     def coverage_quantiles():
         samples = pd.read_csv(c["cohorts"]["samples_tsv"], sep="\t") \
@@ -466,8 +471,11 @@ def main():
 
     # Figure 5 needs the unspliced primary depth, which phase 4 does not keep;
     # 09b_circularity.py rebuilds it from the BAMs and draws its own figure.
-    print(f"wrote figures to {out}: " + ", ".join(
-        sorted(f.stem for f in out.glob("fig*.pdf"))))
+    print(f"\nwrote to {out}: " + (", ".join(drawn) if drawn else "nothing"))
+    if skipped:
+        print("not redrawn: " + ", ".join(skipped)
+              + " -- any copy of these in the output directory is the one that"
+                " came with the repository, not a product of this run.")
     print("figure 5 comes from 09b_circularity.py.")
 
 

@@ -5,7 +5,9 @@
 # not. Everything below has an override, so the same scripts run under sbatch on
 # TRUBA and in a plain loop on a workstation:
 #
-#   MTCOV_ROOT   scratch: FASTQ, BAMs, coverage, the container   (big, not in git)
+#   MTCOV_ROOT   scratch: FASTQ, BAMs, coverage, the container   (big, not in
+#                git) -- required by every phase that touches data, and with no
+#                default, because there is no sensible one
 #   MTCOV_REPO   this checkout -- required, and the one thing with no default:
 #                a batch script cannot find itself, because SLURM copies it to
 #                the node's spool before running it, so $BASH_SOURCE points at
@@ -17,12 +19,16 @@
 #
 # Off the cluster, set MTCOV_ROOT and MTCOV_REPO; the rest follows.
 
-ROOT=${MTCOV_ROOT:-/arf/scratch/suysal/mtcovmap}   # scratch: big intermediates
+ROOT=${MTCOV_ROOT:-}                               # scratch: big intermediates
 REPO=${MTCOV_REPO:?set MTCOV_REPO to this checkout}  # this checkout
-SIF=${MTCOV_SIF:-$ROOT/mtcovmap.sif}
+SIF=${MTCOV_SIF:-${ROOT:+$ROOT/mtcovmap.sif}}
 # Exported so the Python side sees the same layout: config/params.yaml writes
 # every directory as ${MTCOV_ROOT}/... and scripts/_config.py expands it.
-export MTCOV_ROOT="$ROOT" MTCOV_REPO="$REPO"
+# ROOT has no default -- there is no sensible one, and the previous default was
+# one person's scratch directory, which every other user would have silently
+# inherited. Unset, the phases that need it say so; plan and selftest do not.
+export MTCOV_REPO="$REPO"
+[ -n "$ROOT" ] && export MTCOV_ROOT="$ROOT"
 
 # Job logs are written to logs/ relative to the submit directory, not to an
 # absolute path. SLURM opens those files before the script body runs, so an
@@ -34,21 +40,21 @@ export MTCOV_ROOT="$ROOT" MTCOV_REPO="$REPO"
 # Best-effort: `run_all.sh plan` and `selftest` are meant to work in a fresh
 # clone with no scratch anywhere, so an unreachable ROOT is not an error here.
 # The phases that need it call need_root, which is where it is an error.
-mkdir -p "$ROOT/logs" 2>/dev/null || true
+[ -n "$ROOT" ] && { mkdir -p "$ROOT/logs" 2>/dev/null || true; }
 
 # Bind /arf when it exists, because on TRUBA both ROOT and REPO live under it
 # and one bind covers both. Elsewhere bind exactly the two directories used.
-BIND=${MTCOV_BIND:-$([ -d /arf ] && echo /arf || echo "$ROOT,$REPO")}
+BIND=${MTCOV_BIND:-$([ -d /arf ] && echo /arf || echo "${ROOT:-$REPO},$REPO")}
 
 # The container is how the published numbers were produced, so it is the default
 # wherever it can be used. Where apptainer is absent the scripts still run
 # against whatever interpreter is on PATH -- with the versions unpinned, which
 # is the user's problem to solve and not a reason to refuse to start.
-if command -v apptainer >/dev/null 2>&1 && [ -f "$SIF" ]; then
+if command -v apptainer >/dev/null 2>&1 && [ -n "$SIF" ] && [ -f "$SIF" ]; then
     APPT="apptainer exec --bind $BIND $SIF"
 else
     APPT=""
-    echo "note: no container at $SIF; running on PATH (versions unpinned)" >&2
+    echo "note: no container${SIF:+ at $SIF}; running on PATH (versions unpinned)" >&2
 fi
 
 # Word-splitting is deliberate: APPT is a command plus flags, and quoting it

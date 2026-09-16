@@ -24,6 +24,10 @@ export MTCOV_REPO
 # ROOT, REPO, SIF, APPT and pyrun, shared with the batch scripts so there is one
 # definition of where things are rather than two that can drift apart.
 source "$MTCOV_REPO/scripts/_env.sh"
+# The analysis scripts resolve config/, ref/ and results/ relative to the
+# checkout, so that is where this runs from, whatever directory it was called
+# from. Only sbatch is issued from elsewhere; see submit().
+cd "$REPO" || exit 1
 PART=${MTCOV_PARTITION:-barbun}                    # production queue; NOT debug
 N_MAIN=60                                          # 30 LCL + 30 muscle
 N_CHEM=38                                          # 19 blocks x 2 chemistries
@@ -55,21 +59,35 @@ array() {
     else
         local a="--array=$first-$last"
         [ -n "$throttle" ] && a="$a%$throttle"
-        run sbatch "$a" "$@" "$script"
+        submit "$a" "$@" "$script"
     fi
 }
 
 
-# sbatch is refused outside /arf/scratch on this cluster (truba.md), so phases
-# that submit jobs chdir there first. Done lazily: `plan` and `selftest` must
-# work from a plain clone with no cluster attached.
+# Checked lazily: `plan` and `selftest` must work from a plain clone with no
+# scratch and no cluster attached.
 need_root() {
-    cd "$ROOT" 2>/dev/null || {
-        echo "MTCOV_ROOT=$ROOT not reachable -- set it, or use DRY=1" >&2
+    [ -d "$ROOT" ] || {
+        echo "MTCOV_ROOT${ROOT:+=$ROOT} is unset or unreachable. Export it to a" >&2
+        echo "scratch directory with room for ~200 GB, or use DRY=1." >&2
         [ "${DRY:-0}" = 1 ] || exit 1; return; }
-    # The batch scripts log to logs/ relative to here, and SLURM opens those
-    # files before the job body runs, so the directory has to exist first.
-    mkdir -p logs
+    # The batch scripts log to logs/ relative to the submit directory, and SLURM
+    # opens those files before the job body runs, so it has to exist first.
+    mkdir -p "$ROOT/logs"
+}
+
+# sbatch, issued from ROOT. It is refused outside /arf/scratch on TRUBA
+# (truba.md) and the jobs log relative to wherever it was called, so the chdir
+# matters -- but it happens in a subshell, because the analysis phases that run
+# in this one need the checkout as their working directory.
+submit() {
+    command -v sbatch >/dev/null 2>&1 || {
+        echo "no sbatch on PATH. Use MTCOV_LOCAL=1 to run the arrays here," >&2
+        echo "or DRY=1 to print what would be submitted." >&2
+        return 1; }
+    echo "+ (cd $ROOT && sbatch $*)"
+    [ "${DRY:-0}" = 1 ] && return 0
+    ( cd "$ROOT" && sbatch "$@" )
 }
 
 phase_env() {
@@ -119,7 +137,7 @@ phase_11() {
     need_root
     say "11  is the poly-C noise length ambiguity? (reads existing BAMs)"
     if [ "$LOCAL" = 1 ]; then run bash "$REPO/scripts/11_indel.slurm"
-    else run sbatch -p "$PART" "$REPO/scripts/11_indel.slurm"; fi
+    else submit -p "$PART" "$REPO/scripts/11_indel.slurm"; fi
 }
 
 phase_chem() {

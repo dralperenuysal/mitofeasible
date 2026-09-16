@@ -184,6 +184,10 @@ needs both, and says which one is missing rather than guessing: a batch script
 cannot locate itself, because SLURM copies it to the node's spool directory
 before running it.
 
+Neither has a default. Both `plan` and `selftest` still work in a bare clone,
+and so does everything in paths 1 and 2 above, which read only what is committed
+here; anything that touches scratch stops and names the variable it wants.
+
 **With a scheduler.** The `.slurm` files are this study's actual submissions and
 are kept as the record of how the work ran. They are thin wrappers — pick a row
 from the manifest, skip finished work, take a lock, call the Python — so adapt

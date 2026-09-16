@@ -14,10 +14,6 @@ resolving to the filesystem root.
 import os
 import yaml
 
-# The layout this study ran in. Kept as the default so the published
-# invocations work unchanged, not because anything depends on it.
-DEFAULT_ROOT = "/arf/scratch/suysal/mtcovmap"
-
 
 def expand(o):
     """Expand environment variables in every string of a nested structure."""
@@ -31,7 +27,6 @@ def expand(o):
 
 
 def load(path):
-    os.environ.setdefault("MTCOV_ROOT", DEFAULT_ROOT)
     with open(path) as f:
         return expand(yaml.safe_load(f))
 
