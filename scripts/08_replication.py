@@ -18,7 +18,7 @@ import argparse, sys
 from pathlib import Path
 import numpy as np
 import pandas as pd
-import yaml
+import _config
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from mitofeasible import lod  # noqa: E402
@@ -118,7 +118,7 @@ def main():
     a = ap.parse_args()
     if a.selftest:
         return selftest()
-    c = yaml.safe_load(open(a.config))
+    c = _config.load(a.config)
     f, r = c["feasibility"], c["replication"]
     samples = pd.read_csv(a.samples, sep="\t")
     files = sorted(Path(f["counts_dir"]).glob("*_alleles.parquet"))

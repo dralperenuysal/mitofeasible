@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: If you use this software or the error-rate table, please cite it.
+title: >-
+  MitoFeasible: a position-level feasibility map for mitochondrial
+  variant calling from bulk RNA-seq
+type: software
+authors:
+  - family-names: Uysal
+    given-names: Selahattin Alperen
+    affiliation: >-
+      Department of Medical Biology and Genetics, Ege University,
+      School of Medicine, Izmir, Türkiye
+repository-code: https://github.com/dralperenuysal/mitofeasible
+license: MIT
+version: 1.0.0
+date-released: 2026-09-15
+keywords:
+  - mitochondrial DNA
+  - heteroplasmy
+  - RNA-seq
+  - NUMT
+  - detection limit
+  - variant calling
+abstract: >-
+  For each of the 16,569 rCRS positions, the lowest allele fraction at which a
+  variant call from bulk RNA-seq is supported, derived from observed depth and a
+  per-position error rate measured against the donors' own whole-genome data
+  rather than assumed constant. The released tool applies that error rate to any
+  chrM alignment, reading depth from the user's own BAM.

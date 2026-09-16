@@ -5,17 +5,17 @@
 # ulimit and dies with "signal: CPU time limit exceeded (core dumped)" after
 # the packages are already installed. Only this last step needs a real node.
 #
-#   cd /arf/scratch/suysal/mtcovmap && sbatch <repo>/scripts/truba_package_container.slurm
+#   cd "$MTCOV_ROOT" && sbatch <repo>/scripts/truba_package_container.slurm
 #SBATCH --job-name=mtcov_sif
 #SBATCH --partition=barbun
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=20
 #SBATCH --time=01:00:00
-#SBATCH --output=/arf/scratch/suysal/mtcovmap/sif_%j.out
-#SBATCH --error=/arf/scratch/suysal/mtcovmap/sif_%j.err
+#SBATCH --output=sif_%j.out
+#SBATCH --error=sif_%j.err
 
 set -euo pipefail
-ROOT=${MTCOV_ROOT:-/arf/scratch/suysal/mtcovmap}   # scratch: big intermediates
+ROOT=${MTCOV_ROOT:?set MTCOV_ROOT to your scratch directory}
 cd "$ROOT"
 rm -f mtcovmap.sif
 apptainer build mtcovmap.sif sandbox

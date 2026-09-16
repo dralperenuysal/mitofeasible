@@ -1,26 +1,25 @@
 #!/bin/bash
 # Phase 6 - haplogroup profiles, one array task per sample.
 #
-#   cd /arf/scratch/suysal/mtcovmap
+#   cd "$MTCOV_ROOT"
 #   sbatch --array=1-60%10 ~/mtcovmap/scripts/07a_allele_counts.slurm
 #
 #SBATCH --job-name=mtcov_alc
-#SBATCH --partition=debug
+#SBATCH --partition=barbun
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=40
 #SBATCH --time=03:50:00
-#SBATCH --output=/arf/scratch/suysal/mtcovmap/logs/alc_%A_%a.out
-#SBATCH --error=/arf/scratch/suysal/mtcovmap/logs/alc_%A_%a.err
+#SBATCH --output=logs/alc_%A_%a.out
+#SBATCH --error=logs/alc_%A_%a.err
 
 set -euo pipefail
-ROOT=${MTCOV_ROOT:-/arf/scratch/suysal/mtcovmap}   # scratch: big intermediates
-REPO=${MTCOV_REPO:-/arf/home/suysal/mtcovmap}       # this checkout, on the cluster
-APPT="apptainer exec --bind /arf $ROOT/mtcovmap.sif"
+: "${MTCOV_REPO:?set MTCOV_REPO to this checkout (run_all.sh exports it)}"
+source "$MTCOV_REPO/scripts/_env.sh"
 ROW=${SLURM_ARRAY_TASK_ID:?run under sbatch --array}
 mkdir -p "$ROOT/logs" "$ROOT/alleles"
 cd "$REPO"
 
-RUN=$($APPT python -c "
+RUN=$($APPT python3 -c "
 import pandas as pd; print(pd.read_csv('config/samples.tsv', sep='\t',
 dtype=str).iloc[$ROW - 1]['run_accession'])")
 [ -f "$ROOT/alleles/${RUN}_alleles.parquet" ] && { echo "have $RUN"; exit 0; }
@@ -29,4 +28,4 @@ LOCK=$ROOT/alleles/.lock_$RUN
 mkdir "$LOCK" 2>/dev/null || { echo "$RUN taken by a twin job"; exit 0; }
 trap 'rmdir "$LOCK" 2>/dev/null' EXIT
 
-$APPT python scripts/07a_allele_counts.py --row "$ROW"
+$APPT python3 scripts/07a_allele_counts.py --row "$ROW"

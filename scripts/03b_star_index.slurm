@@ -3,7 +3,7 @@
 # shifted chrM build concurrently instead of end to end; A and B are the long
 # poles (~1 h each) and nothing couples them.
 #
-#   cd /arf/scratch/suysal/mtcovmap
+#   cd "$MTCOV_ROOT"
 #   sbatch --array=0-2 ~/mtcovmap/scripts/03b_star_index.slurm
 #
 # Task 0 also prepares the references, and 1 and 2 wait for it: all three read
@@ -13,13 +13,12 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=20
 #SBATCH --time=08:00:00
-#SBATCH --output=/arf/scratch/suysal/mtcovmap/logs/idx_%A_%a.out
-#SBATCH --error=/arf/scratch/suysal/mtcovmap/logs/idx_%A_%a.err
+#SBATCH --output=logs/idx_%A_%a.out
+#SBATCH --error=logs/idx_%A_%a.err
 
 set -euo pipefail
-ROOT=${MTCOV_ROOT:-/arf/scratch/suysal/mtcovmap}   # scratch: big intermediates
-REPO=${MTCOV_REPO:-/arf/home/suysal/mtcovmap}       # this checkout, on the cluster
-APPT="apptainer exec --bind /arf $ROOT/mtcovmap.sif"
+: "${MTCOV_REPO:?set MTCOV_REPO to this checkout (run_all.sh exports it)}"
+source "$MTCOV_REPO/scripts/_env.sh"
 TASK=${SLURM_ARRAY_TASK_ID:-0}
 mkdir -p "$ROOT/logs" "$ROOT/index"
 
@@ -29,7 +28,7 @@ OUT=$ROOT/index/$NAME
 READY=$ROOT/ref/.references_ready
 
 if [ "$TASK" -eq 0 ]; then
-    $APPT python "$REPO/scripts/03a_prepare_reference.py" \
+    $APPT python3 "$REPO/scripts/03a_prepare_reference.py" \
         --config "$REPO/config/params.yaml" --ref-dir "$ROOT/ref"
     touch "$READY"
 else
@@ -58,7 +57,7 @@ fi
 BUILD=$ROOT/index/.building_$NAME
 rm -rf "$BUILD"; mkdir -p "$BUILD"
 
-read -r THREADS OVERHANG < <($APPT python -c "
+read -r THREADS OVERHANG < <($APPT python3 -c "
 import yaml; c = yaml.safe_load(open('$REPO/config/params.yaml'))['alignment']
 print(c['threads'], c['sjdb_overhang'])")
 

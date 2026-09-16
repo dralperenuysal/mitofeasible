@@ -1,0 +1,29 @@
+{
+  "upload_type": "software",
+  "title": "MitoFeasible: a position-level feasibility map for mitochondrial variant calling from bulk RNA-seq",
+  "description": "<p>Where in the mitochondrial genome can variants be reliably called from bulk RNA-seq, and what determines that? This repository holds the study and the tool it produced.</p><p>For each of the 16,569 rCRS positions the map gives the lowest allele fraction at which a call is supported, from observed depth and a per-position error rate <em>measured</em> against the donors' own whole-genome data rather than assumed constant. The released tool applies that error rate to any chrM alignment, reading depth from the user's own BAM.</p><p>Includes the measured per-position error rate, the NUMT-masking contrast, the library-chemistry contrast, and the tables behind them.</p>",
+  "creators": [
+    {
+      "name": "Uysal, Selahattin Alperen",
+      "affiliation": "Department of Medical Biology and Genetics, Ege University, School of Medicine, Izmir, Türkiye"
+    }
+  ],
+  "license": "MIT",
+  "access_right": "open",
+  "keywords": [
+    "mitochondrial DNA",
+    "heteroplasmy",
+    "RNA-seq",
+    "NUMT",
+    "detection limit",
+    "variant calling",
+    "reproducibility"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/dralperenuysal/mitofeasible",
+      "relation": "isSupplementTo",
+      "scheme": "url"
+    }
+  ]
+}

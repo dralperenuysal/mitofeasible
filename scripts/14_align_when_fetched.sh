@@ -6,8 +6,8 @@
 #   setsid nohup bash ~/mtcovmap/scripts/14_align_when_fetched.sh \
 #       > ~/mtcovmap/logs/align_when_fetched.log 2>&1 < /dev/null &
 set -uo pipefail
-ROOT=${MTCOV_ROOT:-/arf/scratch/suysal/mtcovmap}
-REPO=${MTCOV_REPO:-/arf/home/suysal/mtcovmap}
+: "${MTCOV_REPO:?set MTCOV_REPO to this checkout (run_all.sh exports it)}"
+source "$MTCOV_REPO/scripts/_env.sh"
 LOG=${1:-$REPO/logs/fetch_chem2.log}
 MANIFEST=$REPO/config/samples_chem.tsv
 FQ=$ROOT/fastq_chem

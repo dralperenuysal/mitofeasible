@@ -30,3 +30,6 @@ AGENTS.md
 notebook.md
 story.md
 scripts/13_submission_bundle.py
+
+# AI agents: internal, not part of the shared repo.
+.codewhale

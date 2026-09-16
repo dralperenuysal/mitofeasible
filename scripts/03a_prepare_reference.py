@@ -13,7 +13,7 @@ A and B differ in the reference and nothing else (AGENTS.md 3, Phase 3).
 """
 import argparse, gzip, shutil, sys, urllib.request
 from pathlib import Path
-import yaml
+import _config
 
 GENCODE = ("https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_47/"
            "GRCh38.primary_assembly.genome.fa.gz")
@@ -158,7 +158,7 @@ def main():
     a = ap.parse_args()
     if a.selftest:
         return selftest()
-    build(Path(a.ref_dir), yaml.safe_load(open(a.config))["reference"])
+    build(Path(a.ref_dir), _config.load(a.config)["reference"])
 
 
 if __name__ == "__main__":

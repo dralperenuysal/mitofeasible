@@ -8,7 +8,7 @@ ENA md5 of every file. Raw FASTQ only - no count matrices (AGENTS.md 3, Phase 2)
 import argparse, hashlib, pathlib, subprocess, sys, urllib.parse, urllib.request
 from pathlib import Path
 import pandas as pd
-import yaml
+import _config
 
 ENA = "https://www.ebi.ac.uk/ena/portal/api/search"
 FIELDS = [
@@ -232,7 +232,7 @@ def main():
     a = ap.parse_args()
     if a.selftest:
         return selftest()
-    cfg = yaml.safe_load(open(a.config))["cohorts"]
+    cfg = _config.load(a.config)["cohorts"]
     if a.manifest or not a.download:
         m = build_manifest(cfg)
         Path(a.out).parent.mkdir(parents=True, exist_ok=True)

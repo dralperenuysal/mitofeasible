@@ -12,7 +12,7 @@ import argparse, sys
 from pathlib import Path
 import numpy as np
 import pandas as pd
-import yaml
+import _config
 
 ARMS = ("A", "B")
 
@@ -257,7 +257,7 @@ def main():
         return selftest()
     if not a.row:
         sys.exit("--row is required (or --selftest)")
-    c = yaml.safe_load(open(a.config))
+    c = _config.load(a.config)
     row = pd.read_csv(a.samples, sep="\t", dtype=str).iloc[a.row - 1]
     study = c["cohorts"]["studies"].get(row["bioproject"])
     if study is None and a.stranded is None:

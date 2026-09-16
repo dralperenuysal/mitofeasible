@@ -14,7 +14,7 @@ import argparse, importlib.util, sys
 from pathlib import Path
 import numpy as np
 import pandas as pd
-import yaml
+import _config
 from scipy import stats
 
 HERE = Path(__file__).resolve().parent
@@ -170,7 +170,7 @@ def main():
     if a.selftest:
         return selftest()
 
-    c = yaml.safe_load(open(a.config))
+    c = _config.load(a.config)
     f, r = c["feasibility"], c["replication"]
     alpha, power = f["alpha"] / f["n_tests"], f["power"]
     samples = pd.read_csv(a.samples, sep="\t")

@@ -16,7 +16,7 @@ import argparse, subprocess, sys
 from collections import Counter
 from pathlib import Path
 import pandas as pd
-import yaml
+import _config
 
 BASES = "ACGT"
 
@@ -155,7 +155,7 @@ def main():
     a = ap.parse_args()
     if a.mode == "selftest":
         return selftest()
-    c = yaml.safe_load(open(a.config))
+    c = _config.load(a.config)
     hcfg, acfg = c["haplogroup"], c["alignment"]
     if a.mode == "call":
         if not a.row:

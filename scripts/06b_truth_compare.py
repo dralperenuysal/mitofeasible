@@ -13,7 +13,7 @@ concentrate - so are the positions that actually drive assignment covered?
 import argparse, gzip, subprocess, sys, urllib.request
 from pathlib import Path
 import pandas as pd
-import yaml
+import _config
 
 
 def fetch_truth_vcf(url, dest):
@@ -127,7 +127,7 @@ def main():
     a = ap.parse_args()
     if a.selftest:
         return selftest()
-    c = yaml.safe_load(open(a.config))
+    c = _config.load(a.config)
     h = c["haplogroup"]
     hdir, out = Path(h["hsd_dir"]), Path(a.out)
     out.mkdir(parents=True, exist_ok=True)

@@ -4,7 +4,7 @@
 # ~70 min for 24 samples, almost all of it in the poly(A) libraries, whose chrM
 # read counts are ~18x the rRNA-depleted ones.
 #
-#   cd /arf/scratch/suysal/mtcovmap
+#   cd "$MTCOV_ROOT"
 #   sbatch --array=1-38 scripts/15_chem_counts.slurm
 #
 #SBATCH --job-name=mtcov_chemcnt
@@ -12,14 +12,13 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=20
 #SBATCH --time=02:00:00
-#SBATCH --output=/arf/scratch/suysal/mtcovmap/logs/chemcnt_%A_%a.out
-#SBATCH --error=/arf/scratch/suysal/mtcovmap/logs/chemcnt_%A_%a.err
+#SBATCH --output=logs/chemcnt_%A_%a.out
+#SBATCH --error=logs/chemcnt_%A_%a.err
 set -euo pipefail
-ROOT=${MTCOV_ROOT:-/arf/scratch/suysal/mtcovmap}
-REPO=${MTCOV_REPO:-/arf/home/suysal/mtcovmap}
+: "${MTCOV_REPO:?set MTCOV_REPO to this checkout (run_all.sh exports it)}"
+source "$MTCOV_REPO/scripts/_env.sh"
 MANIFEST=$REPO/config/samples_chem.tsv
 ROW=${SLURM_ARRAY_TASK_ID:?}
-APPT="apptainer exec --bind /arf $ROOT/mtcovmap.sif"
 
 RUN=$($APPT python3 -c "
 import pandas as pd, sys

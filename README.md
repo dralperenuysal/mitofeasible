@@ -158,7 +158,7 @@ its own script and its cached profile is committed, so it redraws in full:
 python3 scripts/09b_circularity.py --config config/params.yaml
 ```
 
-### 3. Re-run the pipeline — a cluster, ~200 GB, days
+### 3. Re-run the pipeline — ~200 GB, days
 
 ```bash
 ./run_all.sh                 # print the phase order and the exact invocations
@@ -172,9 +172,61 @@ DRY=1 ./run_all.sh all       # print every command without running it
 does, that script says how it was called. Several invocations are not guessable
 from the scripts alone.
 
-Before it will run anywhere else, edit the paths in `config/params.yaml` (they
-share one prefix) and export `MTCOV_ROOT` (scratch) and `MTCOV_REPO` (the
-checkout). The SLURM scripts read both and default to the layout used here.
+To run it anywhere else, export `MTCOV_ROOT` (scratch, for the big
+intermediates) and `MTCOV_REPO` (this checkout). Nothing needs editing: every
+directory in `config/params.yaml` is written as `${MTCOV_ROOT}/...` and expanded
+at load time, and the batch scripts read the same two variables through
+`scripts/_env.sh`.
+
+`run_all.sh` sets `MTCOV_REPO` from its own location and exports it, so running
+the pipeline through it needs only `MTCOV_ROOT`. Invoking a batch script by hand
+needs both, and says which one is missing rather than guessing: a batch script
+cannot locate itself, because SLURM copies it to the node's spool directory
+before running it.
+
+**With a scheduler.** The `.slurm` files are this study's actual submissions and
+are kept as the record of how the work ran. They are thin wrappers — pick a row
+from the manifest, skip finished work, take a lock, call the Python — so adapt
+them rather than read around them. Job logs go to `logs/` relative to the submit
+directory, which `run_all.sh` creates; submitting one by hand means changing to
+`$MTCOV_ROOT` first.
+
+Four things are tuned to the cluster this ran on and are yours to change:
+
+| | Where | What to do |
+|---|---|---|
+| Queue | `#SBATCH --partition=barbun` | Export `MTCOV_PARTITION`; `run_all.sh` passes it as `-p`, which overrides the header. Submitting a file directly still inherits `barbun`, so edit the header if you do that. |
+| Account / QoS | not present | Many sites require `--account=` or a QoS. There is no hook for it: add the directive to the files you use. |
+| Resource shape | `--nodes=1`, `--ntasks-per-node=20` or `40`, `--time=…`, and `alignment.limit_bam_sort_ram` in `config/params.yaml` | Sized for 20–40 core nodes with ≥96 GB. Alignment reads its thread count from `SLURM_CPUS_ON_NODE` and adapts; index building takes `alignment.threads` from the config and does not. |
+| Container | `env/mitofeasible.def` | Bootstraps from a public Docker image, so building it needs network access and unprivileged user namespaces on the build host. Where the login node allows neither, build elsewhere and copy the `.sif` to `$MTCOV_SIF`. |
+
+Nothing above blocks a dry run: `DRY=1 ./run_all.sh all` prints every command,
+with your paths substituted, without submitting anything.
+
+**Without one.** Set `MTCOV_LOCAL=1` and the array jobs become sequential loops
+in the current shell:
+
+```bash
+export MTCOV_ROOT=/data/mitofeasible MTCOV_REPO=$PWD
+MTCOV_LOCAL=1 ./run_all.sh 4          # the 60-sample array, one at a time
+SLURM_ARRAY_TASK_ID=7 bash scripts/04_coverage.slurm    # or a single sample
+```
+
+Nothing is submitted, so each phase finishes before it returns, and every script
+skips work whose output already exists — a loop interrupted halfway resumes
+where it stopped. This is the same code the cluster runs, started differently;
+there is no separate local pipeline to drift out of step.
+
+What it does not do is make the work small. Phase 3 is STAR against GRCh38 for
+60 samples twice over: ~30 GB of RAM for the index alone, ~200 GB of disk, and
+days on one machine. Phases 4–9 are minutes to hours and are comfortable
+locally; phases 2 and 3 are why this study used a cluster, and no amount of
+scheduling changes that.
+
+If `apptainer` or the image is missing, the scripts say so once and fall back to
+whatever is on `PATH`. That is deliberate — a missing container should not look
+like a broken checkout — but the versions are then unpinned and the numbers may
+move. `env/versions.lock` is what produced the published ones.
 
 **The environment.** `env/mitofeasible.def` builds the analysis container from a
 public base and works anywhere; `scripts/truba_build_container.sh` builds the

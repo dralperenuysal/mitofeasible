@@ -5,8 +5,8 @@
 #
 #   nohup bash ~/mtcovmap/scripts/10_fetch_chem.sh > ~/mtcovmap/logs/fetch_chem.log 2>&1 &
 set -uo pipefail
-ROOT=${MTCOV_ROOT:-/arf/scratch/suysal/mtcovmap}
-REPO=${MTCOV_REPO:-/arf/home/suysal/mtcovmap}
+: "${MTCOV_REPO:?set MTCOV_REPO to this checkout (run_all.sh exports it)}"
+source "$MTCOV_REPO/scripts/_env.sh"
 DEST=$ROOT/fastq_chem
 mkdir -p "$DEST" "$REPO/logs"
 

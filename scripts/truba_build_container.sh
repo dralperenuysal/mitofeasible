@@ -7,7 +7,7 @@
 #
 #   nohup ./scripts/truba_build_container.sh > logs/container_build.log 2>&1 &
 set -euo pipefail
-ROOT=${MTCOV_ROOT:-/arf/scratch/suysal/mtcovmap}   # scratch: big intermediates
+ROOT=${MTCOV_ROOT:?set MTCOV_ROOT to your scratch directory}
 BASE=/arf/sw/containers/miniconda3/miniconda3-container.sif
 MM_URL=https://micro.mamba.pm/api/micromamba/linux-64/latest
 

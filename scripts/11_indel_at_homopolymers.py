@@ -13,7 +13,7 @@ No realignment; this reads the existing chrM BAMs.
 import argparse, sys
 from pathlib import Path
 import pandas as pd
-import yaml
+import _config
 
 # Tracts named in the manuscript, plus two control windows of comparable depth
 # that are not homopolymeric.
@@ -115,7 +115,7 @@ def main():
     a = a.parse_args()
     if a.selftest:
         return selftest()
-    c = yaml.safe_load(open(a.config))
+    c = _config.load(a.config)
     bam_dir = Path(c["alignment"]["bam_dir"])
     samples = pd.read_csv(a.samples, sep="\t")
     regions = {**TRACTS, **CONTROLS}

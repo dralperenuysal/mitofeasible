@@ -15,7 +15,7 @@
 ##SBATCH --partition=<set this>   # fill in from `sinfo`; TRUBA queue names vary
 
 set -euo pipefail
-cd "${SLURM_SUBMIT_DIR:-$PWD}"
-source "$(conda info --base)/etc/profile.d/conda.sh"
-conda activate mitofeasible
-python scripts/02_download.py --download --row "${SLURM_ARRAY_TASK_ID}"
+: "${MTCOV_REPO:?set MTCOV_REPO to this checkout (run_all.sh exports it)}"
+source "$MTCOV_REPO/scripts/_env.sh"
+cd "$REPO"
+pyrun scripts/02_download.py --download --row "${SLURM_ARRAY_TASK_ID}"

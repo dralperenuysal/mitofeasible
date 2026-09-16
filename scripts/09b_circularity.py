@@ -15,7 +15,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import yaml
+import _config
 
 HERE = Path(__file__).resolve().parent
 C = {"lcl": "#2a78d6", "skeletal_muscle": "#eb6834"}
@@ -147,7 +147,7 @@ def main():
     if a.selftest:
         return selftest()
 
-    c = yaml.safe_load(open(a.config))
+    c = _config.load(a.config)
     ref, aln, cov = c["reference"], c["alignment"], c["coverage"]
     T, out = Path(a.tables), Path(a.out)
     out.mkdir(parents=True, exist_ok=True)

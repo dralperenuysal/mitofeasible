@@ -13,7 +13,7 @@ import argparse, sys
 from pathlib import Path
 import numpy as np
 import pandas as pd
-import yaml
+import _config
 
 BASES = "ACGT"
 
@@ -107,7 +107,7 @@ def main():
         return selftest()
     if not a.row:
         sys.exit("--row is required")
-    c = yaml.safe_load(open(a.config))
+    c = _config.load(a.config)
     acfg, hcfg = c["alignment"], c["haplogroup"]
     out = Path(c["feasibility"]["counts_dir"])
     out.mkdir(parents=True, exist_ok=True)

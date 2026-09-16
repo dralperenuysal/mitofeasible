@@ -23,7 +23,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import yaml
+import _config
 
 C = {"lcl": "#2a78d6", "skeletal_muscle": "#eb6834"}
 LABEL = {"lcl": "LCL (n=30)", "skeletal_muscle": "Skeletal muscle (n=30)"}
@@ -399,7 +399,7 @@ def main():
     ap.add_argument("--out", default="results/figures")
     a = ap.parse_args()
     style()
-    c = yaml.safe_load(open(a.config))
+    c = _config.load(a.config)
     T, out = Path(a.tables), Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     genes = pd.read_csv(c["coverage"]["genes_bed"], sep="\t")

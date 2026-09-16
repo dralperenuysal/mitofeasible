@@ -3,7 +3,7 @@
 # realign its chrM reads to the shifted chrM so the control region is not cut by
 # the linear reference's seam (scripts/03_circularity_decision.md).
 #
-#   cd /arf/scratch/suysal/mtcovmap
+#   cd "$MTCOV_ROOT"
 #   sbatch --array=1-60%6 ~/mtcovmap/scripts/03_align.sh
 #
 #SBATCH --job-name=mtcov_aln
@@ -11,8 +11,8 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=20
 #SBATCH --time=12:00:00
-#SBATCH --output=/arf/scratch/suysal/mtcovmap/logs/aln_%A_%a.out
-#SBATCH --error=/arf/scratch/suysal/mtcovmap/logs/aln_%A_%a.err
+#SBATCH --output=logs/aln_%A_%a.out
+#SBATCH --error=logs/aln_%A_%a.err
 
 set -euo pipefail
 # STAR's coordinate sort opens outBAMsortingThreadN x outBAMsortingBinsN temp
@@ -22,15 +22,13 @@ set -euo pipefail
 # cap the sorting threads; both are done here so A, B and the shifted pass share
 # the setting.
 ulimit -n "$(ulimit -Hn)" 2>/dev/null || true
-ROOT=${MTCOV_ROOT:-/arf/scratch/suysal/mtcovmap}   # scratch: big intermediates
-REPO=${MTCOV_REPO:-/arf/home/suysal/mtcovmap}       # this checkout, on the cluster
+: "${MTCOV_REPO:?set MTCOV_REPO to this checkout (run_all.sh exports it)}"
+source "$MTCOV_REPO/scripts/_env.sh"
 # A second cohort (the chemistry control) has its own manifest, its own flat
 # FASTQ directory and needs only the unmasked arm. Defaults reproduce the
 # original behaviour exactly, so the main cohort is unaffected.
 MANIFEST=${MTCOV_MANIFEST:-$REPO/config/samples.tsv}
 ARMS=${MTCOV_ARMS:-A B}
-SIF=$ROOT/mtcovmap.sif
-APPT="apptainer exec --bind /arf $SIF"
 ROW=${SLURM_ARRAY_TASK_ID:?set SLURM_ARRAY_TASK_ID or run under sbatch --array}
 mkdir -p "$ROOT/logs" "$ROOT/bam" "$ROOT/stats"
 
@@ -38,7 +36,7 @@ mkdir -p "$ROOT/logs" "$ROOT/bam" "$ROOT/stats"
 # script and in config/samples.tsv, where Phase 2 put it.
 # The heredoc is quoted, so the checkout path is passed as an argument rather
 # than interpolated - the script must not depend on the shell expanding inside it.
-read -r RUN LAYOUT THREADS MULTIMAP MISMATCH SJMIN SORTRAM EXTRA < <($APPT python - "$ROW" "$REPO" "$MANIFEST" <<'PY'
+read -r RUN LAYOUT THREADS MULTIMAP MISMATCH SJMIN SORTRAM EXTRA < <($APPT python3 - "$ROW" "$REPO" "$MANIFEST" <<'PY'
 import sys, pandas as pd, yaml
 repo = sys.argv[2]
 row = pd.read_csv(sys.argv[3], sep="\t", dtype=str).iloc[int(sys.argv[1]) - 1]

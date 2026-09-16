@@ -8,7 +8,7 @@ import argparse, sys, urllib.parse, urllib.request
 from pathlib import Path
 
 import pandas as pd
-import yaml
+import _config
 
 FIELDS = [
     "study_accession", "sample_accession", "run_accession", "instrument_model",
@@ -163,7 +163,7 @@ def main():
     if args.selftest:
         return selftest()
 
-    cfg = yaml.safe_load(open(args.config))["bioproject_scan"]
+    cfg = _config.load(args.config)["bioproject_scan"]
     if args.from_raw:
         runs = annotate(pd.read_csv(args.raw_out, sep="\t", dtype=str), cfg)
         cand = summarise(runs, cfg)

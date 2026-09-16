@@ -13,7 +13,7 @@ import argparse, sys
 from pathlib import Path
 import numpy as np
 import pandas as pd
-import yaml
+import _config
 
 
 def delta_table(per_base):
@@ -180,7 +180,7 @@ def main():
     a = ap.parse_args()
     if a.selftest:
         return selftest()
-    c = yaml.safe_load(open(a.config))
+    c = _config.load(a.config)
     samples = pd.read_csv(a.samples, sep="\t")
     genes = pd.read_csv(c["coverage"]["genes_bed"], sep="\t")
     run(c["coverage"]["cov_dir"], samples, genes, c["numt_delta"], a.out)

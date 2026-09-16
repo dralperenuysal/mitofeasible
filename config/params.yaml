@@ -1,9 +1,12 @@
 # MitoFeasible parameters. Nothing is hardcoded in scripts.
 #
-# The absolute paths below are this study's cluster layout. To run the pipeline
-# anywhere else, edit them (they all share one prefix) and set MTCOV_ROOT and
-# MTCOV_REPO for the SLURM scripts. The published tool, scripts/mitofeasible.py,
-# reads none of them and works from a plain clone.
+# Every directory below is written as ${MTCOV_ROOT}/..., expanded at load time
+# by scripts/_config.py. To run the pipeline anywhere else, export MTCOV_ROOT
+# (scratch, for the big intermediates) and MTCOV_REPO (this checkout); nothing
+# in this file needs editing. Unset, MTCOV_ROOT falls back to the layout this
+# study ran in, so the published invocations still work unchanged.
+# The published tool, scripts/mitofeasible.py, reads none of this and works
+# from a plain clone.
 
 reference:
   accession: NC_012920.1        # rCRS
@@ -97,7 +100,7 @@ bioproject_scan:
 cohorts:
   seed: 20260904
   # TRUBA: intermediates live on scratch, not in the repo tree (AGENTS.md 4).
-  fastq_dir: /arf/scratch/suysal/mtcovmap/fastq
+  fastq_dir: ${MTCOV_ROOT}/fastq
   panel_url: "https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/integrated_call_samples_v3.20130502.ALL.panel"
   panel_cache: ref/1000g_panel.txt
   studies:
@@ -159,13 +162,13 @@ alignment:
   # takes ~30 GB of that, so the two together stay well inside the node.
   limit_bam_sort_ram: 48000000000
   star_extra: ""               # anything added here applies to A and B alike
-  ref_dir: /arf/scratch/suysal/mtcovmap/ref
-  index_dir: /arf/scratch/suysal/mtcovmap/index
-  bam_dir: /arf/scratch/suysal/mtcovmap/bam
+  ref_dir: ${MTCOV_ROOT}/ref
+  index_dir: ${MTCOV_ROOT}/index
+  bam_dir: ${MTCOV_ROOT}/bam
 
 # Phase 4 - coverage profiling.
 coverage:
-  cov_dir: /arf/scratch/suysal/mtcovmap/coverage
+  cov_dir: ${MTCOV_ROOT}/coverage
   genes_bed: ref/chrM_genes.bed
   # STAR encodes uniqueness in MAPQ: 255 unique, 3 two loci, 1 three or four,
   # 0 five or more. Phase 3 deliberately kept multimappers, so the filtering
@@ -197,7 +200,7 @@ numt_delta:
 # it tests the pipeline against DNA-derived truth and asks whether the positions
 # that drive assignment are covered at all in RNA-seq.
 haplogroup:
-  hsd_dir: /arf/scratch/suysal/mtcovmap/haplogroup
+  hsd_dir: ${MTCOV_ROOT}/haplogroup
   # A haplogroup is defined by near-fixed variants, so the call is a majority
   # call, not a heteroplasmy call. Phase 7 is where low-frequency detection is
   # modelled; mixing the two here would let an RT artefact rename a lineage.
@@ -211,7 +214,7 @@ haplogroup:
 
 # Phase 7 - feasibility map. The core deliverable.
 feasibility:
-  counts_dir: /arf/scratch/suysal/mtcovmap/alleles
+  counts_dir: ${MTCOV_ROOT}/alleles
   # Per-position error rate is estimated, not assumed (Phase 0 3.1). Positions
   # where the donor's own DNA carries no variant define the floor: whatever the
   # RNA reads disagree on there is sequencing error plus RT misincorporation at
