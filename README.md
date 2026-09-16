@@ -112,7 +112,7 @@ conservative rather than optimistic.
 
 ## Using this repository
 
-Three things people want from it, in ascending order of cost.
+Four things people want from it, in ascending order of cost.
 
 ### 1. Apply the tool to your own data — minutes, no cluster
 
@@ -201,7 +201,7 @@ them rather than read around them. Job logs go to `logs/` relative to the submit
 directory, which `run_all.sh` creates; submitting one by hand means changing to
 `$MTCOV_ROOT` first.
 
-Four things are tuned to the cluster this ran on and are yours to change:
+Four settings are tuned to the cluster this ran on and are yours to change:
 
 | | Where | What to do |
 |---|---|---|
@@ -260,18 +260,31 @@ On a shared filesystem that forbids conda installs — TRUBA does — the contai
 is the only sanctioned route, and `environment.yml` is a manifest rather than an
 environment.
 
-**A cohort of your own.** The chemistry control runs through the same scripts
-with three overrides, so a cohort outside `config/params.yaml` needs no new
-code: `MTCOV_MANIFEST` (its own sample table), `MTCOV_FQDIR` (a flat FASTQ
-directory rather than one per run) and `MTCOV_ARMS=A` (skip the NUMT-masked arm
-where that contrast is not the question). Phases 4 and 7a take matching `--arms`
-and `--stranded` flags. That cohort is deliberately *not* added to
-`cohorts.studies`: phase 8 picks the replication cohort as "the study that is
-not the primary one", and a third entry would silently change that.
-
 All parameters live in `config/params.yaml`; nothing is hardcoded in analysis
 logic. Every non-trivial script carries a selftest that runs without data —
 `--selftest`, except `06_haplogroup.py`, where it is a positional mode.
+
+### 4. Run it on your own cohort — the map, for your tissue
+
+The point of the pipeline is not to reproduce these two cohorts; it is to
+produce the same map somewhere else. That needs no new code. The chemistry
+control in this study is already an outside cohort, carried by three overrides:
+
+```bash
+export MTCOV_MANIFEST=config/mine.tsv   # your sample table
+export MTCOV_FQDIR=/data/fastq          # flat, rather than one directory per run
+export MTCOV_ARMS=A                     # skip the NUMT-masked arm if that contrast is not your question
+./run_all.sh 3 4 7
+```
+
+Phases 4 and 7a take matching `--arms` and `--stranded` flags. Without matched
+DNA the error floor comes from the DNA-free estimator (Methods in the
+manuscript), which is validated against the DNA-based one here and errs
+conservative.
+
+Do *not* add that cohort to `cohorts.studies` in `config/params.yaml`: phase 8
+picks the replication cohort as "the study that is not the primary one", and a
+third entry would silently change which one that is.
 
 ## Layout
 
