@@ -35,7 +35,9 @@ From: mambaorg/micromamba@sha256:475730daef12ff9c0733e70092aeeefdf4c373a584c952d
 
 %post
     set -eux
-    micromamba install -y -p /opt/mitofeasible -c conda-forge -c bioconda \
+    # `create`, not `install`: install requires the prefix to exist already, and
+    # /opt/mitofeasible does not exist in the base image.
+    micromamba create -y -p /opt/mitofeasible -c conda-forge -c bioconda \
         --file /opt/versions.lock
     micromamba clean -ya
     # The lock carries transitive packages too, so a failure here is a genuine
