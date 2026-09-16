@@ -163,10 +163,16 @@ python3 scripts/09b_circularity.py --config config/params.yaml
 ```bash
 ./run_all.sh                 # print the phase order and the exact invocations
 ./run_all.sh selftest        # 14 selftests, no data required
-apptainer build mitofeasible.sif env/mitofeasible.def
+export MTCOV_ROOT=/scratch/yours
+apptainer pull "$MTCOV_ROOT/mtcovmap.sif" oras://ghcr.io/dralperenuysal/mitofeasible:1.0.0
 DRY=1 ./run_all.sh all       # print every command without running it
 ./run_all.sh 2 3 4           # then run phases
 ```
+
+Pulling is the shorter route; `apptainer build mitofeasible.sif
+env/mitofeasible.def` builds the same image from the same lockfile where a
+registry is unreachable. The published image is a SIF served as an ORAS
+artifact, so `docker pull` does not apply to it.
 
 `run_all.sh` is the entry point: the pipeline table above says what each phase
 does, that script says how it was called. Several invocations are not guessable
@@ -202,7 +208,7 @@ Four things are tuned to the cluster this ran on and are yours to change:
 | Queue | `#SBATCH --partition=barbun` | Export `MTCOV_PARTITION`; `run_all.sh` passes it as `-p`, which overrides the header. Submitting a file directly still inherits `barbun`, so edit the header if you do that. |
 | Account / QoS | not present | Many sites require `--account=` or a QoS. There is no hook for it: add the directive to the files you use. |
 | Resource shape | `--nodes=1`, `--ntasks-per-node=20` or `40`, `--time=…`, and `alignment.limit_bam_sort_ram` in `config/params.yaml` | Sized for 20–40 core nodes with ≥96 GB. Alignment reads its thread count from `SLURM_CPUS_ON_NODE` and adapts; index building takes `alignment.threads` from the config and does not. |
-| Container | `env/mitofeasible.def` | Bootstraps from a public Docker image, so building it needs network access and unprivileged user namespaces on the build host. Where the login node allows neither, build elsewhere and copy the `.sif` to `$MTCOV_SIF`. |
+| Container | `env/mitofeasible.def` | Prefer `apptainer pull oras://ghcr.io/dralperenuysal/mitofeasible:1.0.0`. Building instead needs network access and unprivileged user namespaces on the build host; where the login node allows neither, build or pull elsewhere and copy the `.sif` to `$MTCOV_SIF`. |
 
 Nothing above blocks a dry run: `DRY=1 ./run_all.sh all` prints every command,
 with your paths substituted, without submitting anything.
