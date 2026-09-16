@@ -233,12 +233,22 @@ like a broken checkout — but the versions are then unpinned and the numbers ma
 move. `env/versions.lock` is what produced the published ones.
 
 **The environment.** `env/mitofeasible.def` builds the analysis container from a
-public base and works anywhere; `scripts/truba_build_container.sh` builds the
-same thing on TRUBA, from a base image that exists only on that cluster.
+public base, pinned by digest rather than by tag so that the starting point
+cannot move under it; `scripts/truba_build_container.sh` builds the same thing
+on TRUBA, from a base image that exists only on that cluster. `x86_64` only: the
+lock pins bioconda builds of STAR and samtools that exist for `linux-64` alone.
 `env/environment.yml` pins majors and is the file to edit when adding a
 dependency, while `env/versions.lock` is the exact package set the published
 results came from (STAR 2.7.11b, samtools 1.24, scipy 1.17.1, …) and is what the
 definition file installs. Move those and the numbers move with them.
+
+The image carries the environment and none of the analysis code — only
+`versions.lock` is copied in. Code comes from the clone, versions from the
+image, which is why one image serves every revision of the scripts and why
+fixing a script does not mean rebuilding it.
+
+The container is for the pipeline. The released tool needs `pysam` and `scipy`
+and nothing else, so path 1 above deliberately does not go through it.
 
 On a shared filesystem that forbids conda installs — TRUBA does — the container
 is the only sanctioned route, and `environment.yml` is a manifest rather than an

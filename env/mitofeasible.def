@@ -11,9 +11,24 @@
 # Versions come from env/versions.lock, the set the published results were
 # produced with. Drop the --file line to take current releases instead; expect
 # the numbers to move if STAR or samtools do.
+#
+# Architecture: x86_64. The lock pins bioconda builds of STAR and samtools that
+# exist for linux-64 only, so this does not build on an ARM host even though the
+# base image does.
+#
+# The base is pinned by digest, not by the 1.5.8 tag. A tag is a mutable pointer
+# -- it can be moved or removed by its publisher -- and a definition file whose
+# starting point can change is not a record of anything. The digest below is the
+# multi-architecture index that 1.5.8 resolved to on 2026-09-16; its linux/amd64
+# member, the one that gets used here, is
+# sha256:69197a394b85ad1e7ce2398cdaffa75c12e5cd9dcc8529651342818e7b239e59.
+#
+# To move to a newer base deliberately, resolve the tag again:
+#   docker buildx imagetools inspect mambaorg/micromamba:<tag>
+# and replace the digest, rather than dropping back to a tag.
 
 Bootstrap: docker
-From: mambaorg/micromamba:1.5.8
+From: mambaorg/micromamba@sha256:475730daef12ff9c0733e70092aeeefdf4c373a584c952dac3f7bdb739601990
 
 %files
     env/versions.lock /opt/versions.lock
