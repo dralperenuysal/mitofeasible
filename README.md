@@ -166,7 +166,7 @@ python3 scripts/09b_circularity.py --config config/params.yaml
 ./run_all.sh                 # print the phase order and the exact invocations
 ./run_all.sh selftest        # 14 selftests, no data required
 export MTCOV_ROOT=/scratch/yours
-apptainer pull "$MTCOV_ROOT/mtcovmap.sif" oras://ghcr.io/dralperenuysal/mitofeasible:1.0.1
+apptainer pull "$MTCOV_ROOT/mtcovmap.sif" oras://ghcr.io/dralperenuysal/mitofeasible:1.0.2
 DRY=1 ./run_all.sh all       # print every command without running it
 ./run_all.sh 2 3 4           # then run phases
 ```
@@ -210,7 +210,7 @@ Four settings are tuned to the cluster this ran on and are yours to change:
 | Queue | `#SBATCH --partition=barbun` | Export `MTCOV_PARTITION`; `run_all.sh` passes it as `-p`, which overrides the header. Submitting a file directly still inherits `barbun`, so edit the header if you do that. |
 | Account / QoS | not present | Many sites require `--account=` or a QoS. There is no hook for it: add the directive to the files you use. |
 | Resource shape | `--nodes=1`, `--ntasks-per-node=20` or `40`, `--time=…`, and `alignment.limit_bam_sort_ram` in `config/params.yaml` | Sized for 20–40 core nodes with ≥96 GB. Alignment reads its thread count from `SLURM_CPUS_ON_NODE` and adapts; index building takes `alignment.threads` from the config and does not. |
-| Container | `env/mitofeasible.def` | Prefer `apptainer pull oras://ghcr.io/dralperenuysal/mitofeasible:1.0.1`. Building instead needs network access and unprivileged user namespaces on the build host; where the login node allows neither, build or pull elsewhere and copy the `.sif` to `$MTCOV_SIF`. |
+| Container | `env/mitofeasible.def` | Prefer `apptainer pull oras://ghcr.io/dralperenuysal/mitofeasible:1.0.2`. Building instead needs network access and unprivileged user namespaces on the build host; where the login node allows neither, build or pull elsewhere and copy the `.sif` to `$MTCOV_SIF`. |
 
 Nothing above blocks a dry run: `DRY=1 ./run_all.sh all` prints every command,
 with your paths substituted, without submitting anything.

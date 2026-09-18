@@ -11,9 +11,10 @@ authors:
       Department of Medical Biology and Genetics, Ege University,
       School of Medicine, Izmir, Türkiye
 repository-code: https://github.com/dralperenuysal/mitofeasible
+doi: 10.5281/zenodo.22800084
 license: MIT
-version: 1.0.0
-date-released: 2026-09-15
+version: 1.0.2
+date-released: 2026-09-18
 keywords:
   - mitochondrial DNA
   - heteroplasmy
